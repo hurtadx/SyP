@@ -4,7 +4,9 @@ import {
   Animated, Easing, ImageBackground, Modal
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appColors } from '../utils/colors';
+import { supabase } from '../utils/supabase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -14,7 +16,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export default function HomeScreen() {
+export default function HomeScreen({ currentUser, setCurrentUser }) {
   const [currentTime, setCurrentTime] = useState('');
   const [currentAmPm, setCurrentAmPm] = useState('');
   const [remindersActive, setRemindersActive] = useState(false);
@@ -225,13 +227,75 @@ export default function HomeScreen() {
   };
 
   const sendKissNotification = async () => {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "¡Un besito para ti! 💋",
-        body: "muaaaaaaaaaaaaa",
-      },
-      trigger: null,
-    });
+    try {
+      const otherUser = currentUser === 'salo' ? 'tao' : 'salo';
+      
+      const { error } = await supabase.from('notifications')
+        .insert([{
+          from_user: currentUser,
+          to_user: otherUser,
+          type: 'kiss',
+          message: `¡${currentUser} te envió un besito! 💋`,
+          seen: false,
+          created_at: new Date().toISOString()
+        }]);
+      
+      if (error) throw error;
+      
+      showCustomModal(
+        "Besito enviado",
+        `${otherUser === 'salo' ? 'Salo' : 'Tao'} recibirá tu besito ❤️`,
+        "¡Listo!"
+      );
+    } catch (error) {
+      console.error('Error enviando besito:', error);
+    }
+  };
+
+  useEffect(() => {
+    const checkNotifications = async () => {
+      try {
+        const { data, error } = await supabase.from('notifications')
+          .select('*')
+          .eq('to_user', currentUser)
+          .eq('seen', false);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const notificationIds = data.map(n => n.id);
+          await supabase.from('notifications')
+            .update({ seen: true })
+            .in('id', notificationIds);
+          
+          data.forEach(async notification => {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: "¡Un besito para ti! 💋",
+                body: notification.message,
+              },
+              trigger: null,
+            });
+          });
+        }
+      } catch (error) {
+        console.error('Error verificando notificaciones:', error);
+      }
+    };
+    
+    checkNotifications();
+    const interval = setInterval(checkNotifications, 15000);
+    
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('currentUser');
+      setCurrentUser(null);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
   };
 
   return (
@@ -333,6 +397,11 @@ export default function HomeScreen() {
             </View>
           </View>
         </Modal>
+
+        {/* Botón para cerrar sesión */}
+        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+          <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+        </TouchableOpacity>
 
       </View>
     </ImageBackground>
@@ -638,6 +707,26 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   modalButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  logoutButton: {
+    marginTop: 20,
+    backgroundColor: '#FF7E7E',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  logoutButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
