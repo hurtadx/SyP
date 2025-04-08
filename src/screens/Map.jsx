@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabase';
 
-export default function MapScreen() {
+export default function MapScreen({ currentUser }) {
   const [region, setRegion] = useState({
     latitude: 6.2476, 
     longitude: -75.5658,
@@ -77,6 +77,7 @@ export default function MapScreen() {
         longitude: tempMarker.longitude,
         description: markerDescription || 'Lugar especial',
         date: new Date().toISOString(),
+        created_by: currentUser
       };
 
       const { error } = await supabase
@@ -87,7 +88,6 @@ export default function MapScreen() {
 
       // Recargar marcadores
       fetchMarkers();
-      
       
       setMarkerDescription('');
       setTempMarker(null);
@@ -131,7 +131,7 @@ export default function MapScreen() {
               latitude: marker.latitude,
               longitude: marker.longitude,
             }}
-            pinColor="#ff6b6b"
+            pinColor={marker.created_by === 'salo' ? '#ff6b6b' : '#4B89DC'}
           >
             <Callout>
               <View style={styles.callout}>
