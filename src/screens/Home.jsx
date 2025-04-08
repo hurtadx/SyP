@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated, Easing, ImageBackground } from 'react-native';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, Alert, Image, 
+  Animated, Easing, ImageBackground, Modal
+} from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { appColors } from '../utils/colors';
 
@@ -15,6 +18,14 @@ export default function HomeScreen() {
   const [currentTime, setCurrentTime] = useState('');
   const [currentAmPm, setCurrentAmPm] = useState('');
   const [remindersActive, setRemindersActive] = useState(false);
+  
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalContent, setModalContent] = useState({
+    title: '',
+    message: '',
+    buttonText: 'OK'
+  });
 
   const leftStarRotation = useRef(new Animated.Value(0)).current;
   const rightStarRotation = useRef(new Animated.Value(0)).current;
@@ -109,48 +120,92 @@ export default function HomeScreen() {
     }
   };
 
+  
+  const showCustomModal = (title, message, buttonText = 'OK') => {
+    setModalContent({
+      title,
+      message,
+      buttonText
+    });
+    setModalVisible(true);
+  };
+
   const scheduleDailyReminders = async () => {
     try {
+      
+      setRemindersActive(true);
+      
+      
       await Notifications.cancelAllScheduledNotificationsAsync();
-
+  
+      
+      const morningTriggerDate = new Date();
+      
+      
+      morningTriggerDate.setHours(7);
+      morningTriggerDate.setMinutes(36);
+      morningTriggerDate.setSeconds(0);
+      
+      
+      if (morningTriggerDate <= new Date()) {
+        morningTriggerDate.setDate(morningTriggerDate.getDate() + 1);
+      }
+  
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "¡Prepárate mi amor! 🌞",
           body: "En un minuto es hora de nuestro besito de las 7:37 AM 💋",
         },
         trigger: {
-          hour: 7,
-          minute: 36,
+          channelId: 'default',
+          date: morningTriggerDate,
           repeats: true,
+          seconds: 60 * 60 * 24, 
         },
       });
-
+  
+      
+      const eveningTriggerDate = new Date();
+      
+      
+      eveningTriggerDate.setHours(19);
+      eveningTriggerDate.setMinutes(36);
+      eveningTriggerDate.setSeconds(0);
+      
+      
+      if (eveningTriggerDate <= new Date()) {
+        eveningTriggerDate.setDate(eveningTriggerDate.getDate() + 1);
+      }
+      
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "¡Prepárate mi amor! 🌙",
           body: "En un minuto es hora de nuestro besito de las 7:37 PM 💋",
         },
         trigger: {
-          hour: 19,
-          minute: 36,
+          channelId: 'default',
+          date: eveningTriggerDate,
           repeats: true,
+          seconds: 60 * 60 * 24, 
         },
       });
-
-      setRemindersActive(true);
-      Alert.alert(
+  
+      
+      showCustomModal(
         "Recordatorios activados",
         "Recibirás notificaciones a las 7:36 AM y PM para prepararte para tu besito diario.",
-        [{ text: "Entendido" }]
+        "Entendido"
       );
-
+  
       console.log("Recordatorios programados para 7:36 AM y 7:36 PM");
     } catch (error) {
+      
+      setRemindersActive(false);
       console.error("Error al programar recordatorios:", error);
-      Alert.alert(
+      showCustomModal(
         "Error",
         "No se pudieron programar los recordatorios. Inténtalo de nuevo.",
-        [{ text: "OK" }]
+        "OK"
       );
     }
   };
@@ -159,10 +214,10 @@ export default function HomeScreen() {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
       setRemindersActive(false);
-      Alert.alert(
+      showCustomModal(
         "Recordatorios desactivados",
         "Ya no recibirás notificaciones diarias.",
-        [{ text: "OK" }]
+        "OK"
       );
     } catch (error) {
       console.error("Error al cancelar recordatorios:", error);
@@ -200,7 +255,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Botón de besito con estrellas más grandes y borde irregular */}
+        {/* Botón de besito con estrellas */}
         <View style={styles.papercutWrapper}>
           <View style={styles.buttonWrapper}>
             <TouchableOpacity
@@ -222,38 +277,63 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Botón de recordatorios mejorado con borde irregular */}
-        <View style={[styles.papercutWrapper, styles.secondaryPapercut]}>
-          <View style={styles.buttonWrapper}>
-            <TouchableOpacity
-              style={[
-                styles.scheduleButton,
-                remindersActive ? styles.activeButton : null
-              ]}
-              onPress={remindersActive ? disableReminders : scheduleDailyReminders}
-            >
-              <Text style={styles.buttonText}>
-                {remindersActive ? "Desactivar recordatorios" : "Activar recordatorios"}
-              </Text>
-            </TouchableOpacity>
+        {/* Botón de recordatorios con estampilla e indicador de estado */}
+        <View style={styles.reminderSectionWrapper}>
+          <View style={[styles.papercutWrapper, styles.secondaryPapercut]}>
+            <View style={styles.buttonWrapper}>
+              <TouchableOpacity
+                style={[
+                  styles.scheduleButton,
+                  remindersActive ? styles.activeButton : null
+                ]}
+                onPress={remindersActive ? disableReminders : scheduleDailyReminders}
+              >
+                <View style={styles.buttonContentRow}>
+                  <Text style={styles.buttonText}>
+                    {remindersActive ? "Desactivar recordatorios" : "Activar recordatorios"}
+                  </Text>
+                  {remindersActive && <Text style={styles.statusIndicator}>✅</Text>}
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-        {/* Contenedor de notas con estampilla */}
-        <View style={styles.noteWrapper}>
+          
+          {/* Estampilla reposicionada como decoración */}
           <Image
             source={require('../assets/saloIMG/estampilla.png')}
-            style={styles.stampOverlay}
+            style={styles.stampOverlayRepositioned}
           />
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteTitle}>Horario de recordatorios:</Text>
-            <Text style={styles.note}>• 7:36 AM - Aviso para besito de las 7:37</Text>
-            <Text style={styles.note}>• 7:36 PM - Aviso para besito de las 7:37</Text>
-            <Text style={styles.noteStatus}>
-              Estado: {remindersActive ? "Activados ✅" : "Desactivados ❌"}
-            </Text>
-          </View>
         </View>
+
+        {/* Modal personalizado con fondo de imagen */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.modalContainer}>
+              <ImageBackground
+                source={require('../assets/Label.jpg')}
+                style={styles.modalBackground}
+                imageStyle={styles.modalBackgroundImage}
+              >
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>{modalContent.title}</Text>
+                  <Text style={styles.modalText}>{modalContent.message}</Text>
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>{modalContent.buttonText}</Text>
+                  </TouchableOpacity>
+                </View>
+              </ImageBackground>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </ImageBackground>
   );
@@ -364,6 +444,15 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-10deg' }],
     zIndex: 10,
   },
+  stampOverlayRepositioned: {
+    position: 'absolute',
+    width: 90,  
+    height: 90,  
+    bottom: -30,
+    right: 0,
+    transform: [{ rotate: '8deg' }],
+    zIndex: 0,
+  },
 
   
   kissButton: {
@@ -417,6 +506,11 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  statusIndicator: {
+    fontSize: 22,
+    marginLeft: 10,
+    color: 'white',
   },
   
   
@@ -478,4 +572,77 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 25,
     transform: [{ rotate: '-0.4deg' }],
   },
+  reminderSectionWrapper: {
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  modalBackground: {
+    width: '100%',
+  },
+  modalBackgroundImage: {
+    borderRadius: 20,
+  },
+  modalContent: {
+    padding: 25,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.75)', 
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: appColors.text,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 18,
+    color: appColors.textLight,
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  modalButton: {
+    backgroundColor: appColors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    marginTop: 10,
+    
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 25,
+    transform: [{ rotate: '0.5deg' }],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  }
 });
