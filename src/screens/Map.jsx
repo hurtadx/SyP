@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, TextInput, Modal } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, TextInput, Modal, FlatList, ScrollView, Linking } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,17 +18,22 @@ export default function MapScreen({ currentUser }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [tempMarker, setTempMarker] = useState(null);
+  const [isPanelVisible, setIsPanelVisible] = useState(false);
+  const [selectedMarkerId, setSelectedMarkerId] = useState(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+
+  const isProcessing = useRef(false);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     (async () => {
-      //llama al metodo para obtener los permisos de la ubicacion
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         alert('Se necesita permiso para acceder a la ubicación');
         return;
       }
 
-      // la misma mrd
       const location = await Location.getCurrentPositionAsync({});
       setCurrentLocation(location);
       setRegion({
@@ -39,8 +44,15 @@ export default function MapScreen({ currentUser }) {
       });
     })();
 
-    // Cargar marcadores que esten guardados en la base de datos
     fetchMarkers();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
 
   const fetchMarkers = async () => {
@@ -86,7 +98,6 @@ export default function MapScreen({ currentUser }) {
 
       if (error) throw error;
 
-      // Recargar marcadores
       fetchMarkers();
       
       setMarkerDescription('');
@@ -107,6 +118,61 @@ export default function MapScreen({ currentUser }) {
     setModalVisible(false);
   };
 
+  const togglePanel = () => {
+    if (isProcessing.current) return;
+    
+    isProcessing.current = true;
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    if (isPanelVisible && selectedMarkerId) {
+      const marker = markers.find(m => m.id === selectedMarkerId);
+      if (marker) {
+        setRegion({
+          latitude: marker.latitude,
+          longitude: marker.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      setIsPanelVisible(!isPanelVisible);
+      isProcessing.current = false;
+    }, 50);
+  };
+
+  const focusMarker = (marker) => {
+    if (isProcessing.current) return;
+    
+    isProcessing.current = true;
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    setSelectedMarkerId(marker.id);
+    setIsPanelVisible(false);
+    
+    timeoutRef.current = setTimeout(() => {
+      setRegion({
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      isProcessing.current = false;
+    }, 100);
+  };
+
+  const showMarkerDetail = (marker) => {
+    setSelectedMarker(marker);
+    setDetailModalVisible(true);
+  };
+
   return (
     <View style={styles.container}>
       <MapView 
@@ -115,14 +181,12 @@ export default function MapScreen({ currentUser }) {
         onRegionChangeComplete={setRegion}
         onPress={handleMapPress}
       >
-      
         {tempMarker && (
           <Marker
             coordinate={tempMarker}
             pinColor="#ff6b6b"
           />
         )}
-        
 
         {markers.map((marker) => (
           <Marker
@@ -132,17 +196,33 @@ export default function MapScreen({ currentUser }) {
               longitude: marker.longitude,
             }}
             pinColor={marker.created_by === 'salo' ? '#ff6b6b' : '#4B89DC'}
+            onCalloutPress={() => showMarkerDetail(marker)}
           >
-            <Callout>
-              <View style={styles.callout}>
-                <Text style={styles.calloutTitle}>{new Date(marker.date).toLocaleDateString()}</Text>
-                <Text style={styles.calloutDescription}>{marker.description}</Text>
+            <Callout tooltip={true}>
+              <View style={styles.calloutContainer}>
+                <Text style={styles.calloutTitle}>
+                  {new Date(marker.date).toLocaleDateString()}
+                </Text>
+                <Text style={styles.calloutDescription} numberOfLines={2}>
+                  {marker.description}
+                </Text>
+                <Text style={styles.calloutAction}>Toca para ver más</Text>
               </View>
             </Callout>
           </Marker>
         ))}
       </MapView>
       
+      <TouchableOpacity 
+        style={styles.placesButton}
+        onPress={togglePanel}
+      >
+        <Ionicons name="list" size={24} color="white" />
+        <Text style={styles.buttonText}>
+          {isPanelVisible ? "Ocultar lugares" : "Ver lugares"}
+        </Text>
+      </TouchableOpacity>
+
       <TouchableOpacity 
         style={[
           styles.addButton, 
@@ -160,6 +240,51 @@ export default function MapScreen({ currentUser }) {
         </Text>
       </TouchableOpacity>
       
+      <View style={[
+        styles.placesPanel, 
+        { 
+          height: isPanelVisible ? 250 : 0,
+          opacity: isPanelVisible ? 1 : 0
+        }
+      ]}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Nuestros lugares especiales</Text>
+          <TouchableOpacity onPress={togglePanel}>
+            <Ionicons name="close-circle" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+        
+        {isPanelVisible && (
+          <FlatList
+            data={markers}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={[
+                  styles.placeItem,
+                  selectedMarkerId === item.id && styles.selectedPlaceItem
+                ]} 
+                onPress={() => focusMarker(item)}
+              >
+                <View style={[
+                  styles.placeIcon, 
+                  { backgroundColor: item.created_by === 'salo' ? '#ff6b6b' : '#4B89DC' }
+                ]} />
+                <View style={styles.placeInfo}>
+                  <Text style={styles.placeDate}>
+                    {new Date(item.date).toLocaleDateString()}
+                  </Text>
+                  <Text style={styles.placeDescription} numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.placesList}
+          />
+        )}
+      </View>
 
       <Modal
         animationType="slide"
@@ -197,6 +322,59 @@ export default function MapScreen({ currentUser }) {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={detailModalVisible}
+        onRequestClose={() => setDetailModalVisible(false)}
+      >
+        <View style={styles.centeredView}>
+          <View style={styles.detailModalView}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.detailModalTitle}>
+                {selectedMarker && new Date(selectedMarker.date).toLocaleDateString("es-ES", {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Text>
+              <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
+                <Ionicons name="close-circle" size={28} color="#999" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.markerCreatorInfo}>
+              <View style={[styles.creatorIndicator, { 
+                backgroundColor: selectedMarker?.created_by === 'salo' ? '#ff6b6b' : '#4B89DC' 
+              }]} />
+              <Text style={styles.creatorText}>
+                Añadido por {selectedMarker?.created_by === 'salo' ? 'Salo' : 'Tao'}
+              </Text>
+            </View>
+            
+            <ScrollView style={styles.detailScrollView}>
+              <Text style={styles.detailText}>
+                {selectedMarker?.description}
+              </Text>
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={styles.directionsButton}
+              onPress={() => {
+                if (selectedMarker) {
+                  const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedMarker.latitude},${selectedMarker.longitude}`;
+                  Linking.openURL(url);
+                }
+              }}
+            >
+              <Ionicons name="navigate" size={20} color="white" />
+              <Text style={styles.directionsButtonText}>Cómo llegar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -223,6 +401,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    zIndex: 1000,
   },
   cancelButton: {
     backgroundColor: '#ff9e9e',
@@ -297,5 +476,167 @@ const styles = StyleSheet.create({
   calloutDescription: {
     fontSize: 12,
     marginTop: 5,
+  },
+  placesButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: '#4B89DC',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  placesPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
+    overflow: 'hidden', // Evita que el contenido sea visible cuando el panel está cerrado
+    transition: 'height 0.3s ease', // Añade transición CSS nativa
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  panelTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  placesList: {
+    paddingHorizontal: 15,
+  },
+  placeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedPlaceItem: {
+    backgroundColor: '#f0f8ff',
+  },
+  placeIcon: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  placeInfo: {
+    flex: 1,
+  },
+  placeDate: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#444',
+  },
+  placeDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 3,
+  },
+  calloutContainer: {
+    width: 200,
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  calloutAction: {
+    textAlign: 'center',
+    marginTop: 8,
+    fontSize: 12,
+    color: '#4B89DC',
+    fontStyle: 'italic',
+  },
+  detailModalView: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  detailModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+  },
+  markerCreatorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  creatorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  creatorText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  detailScrollView: {
+    maxHeight: 200,
+    marginBottom: 20,
+  },
+  detailText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+  },
+  directionsButton: {
+    backgroundColor: '#4B89DC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  directionsButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
