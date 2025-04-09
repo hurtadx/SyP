@@ -16,10 +16,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
-import WheelOfFortune from 'react-native-wheel-of-fortune';
+import VerticalWheelOfFortune from '../components/VerticalWheelOfFortune';
+
 
 const { width } = Dimensions.get('window');
-const WHEEL_SIZE = width * 0.8;
+const WHEEL_SIZE = width * 0.95; 
 
 
 const PRESET_CATEGORIES = {
@@ -42,15 +43,13 @@ export default function RouletteScreen() {
   const [options, setOptions] = useState(PRESET_CATEGORIES.comidas);
   const [newOption, setNewOption] = useState('');
   const [result, setResult] = useState('');
-  const [isSpinning, setIsSpinning] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('comidas');
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [customOptions, setCustomOptions] = useState([]);
   const [resultModalVisible, setResultModalVisible] = useState(false);
   
-  const wheelRef = useRef(null);
-  const starRotation = useRef(new Animated.Value(0)).current;
   
+  const starRotation = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
     fetchOptions();
@@ -113,9 +112,9 @@ export default function RouletteScreen() {
     }
   };
 
+  
   const addOption = async () => {
     if (!newOption.trim()) return;
-    
     
     if (currentCategory === 'personalizada') {
       try {
@@ -134,32 +133,69 @@ export default function RouletteScreen() {
         return;
       }
     } else {
-      
       setOptions([...options, newOption]);
     }
     
     setNewOption('');
   };
 
+  
+  const deleteOption = async (optionToDelete) => {
+    try {
+      
+      if (currentCategory !== 'personalizada') return;
+      
+      
+      const { error } = await supabase
+        .from('roulette_options')
+        .delete()
+        .eq('option_text', optionToDelete);
+      
+      if (error) throw error;
+      
+      
+      const updatedOptions = customOptions.filter(option => option !== optionToDelete);
+      setCustomOptions(updatedOptions);
+      
+      
+      setOptions(updatedOptions);
+    } catch (error) {
+      console.error('Error al eliminar opción:', error);
+    }
+  };
+
+  
   const switchCategory = (category) => {
     setCurrentCategory(category);
     setCategoryModalVisible(false);
     setResult('');
   };
 
-  const spinWheel = () => {
-    if (wheelRef.current && !isSpinning) {
-      setIsSpinning(true);
-      wheelRef.current._onPress();
-    }
+  
+  const getColorForIndex = (index) => {
+    const colors = [
+      "#FF5252", "#FF7752", "#FFB752", "#FFE652", 
+      "#B4FF52", "#52FF9A", "#52FFFF", "#5286FF",
+      "#A952FF", "#FF52B4"
+    ];
+    return colors[index % colors.length];
   };
 
-  const getWinner = (value, index) => {
+  
+  const getCategoryName = (category) => {
+    const names = {
+      comidas: 'Comidas 🍕',
+      actividades: 'Actividades 🎮',
+      lugares: 'Lugares 🗺️',
+      personalizada: 'Mi lista personalizada ✏️'
+    };
+    return names[category] || category;
+  };
+
+  
+  const handleSpinResult = (value) => {
     setResult(value);
-    setIsSpinning(false);
     setResultModalVisible(true);
-    
-    
   };
 
   return (
@@ -178,7 +214,7 @@ export default function RouletteScreen() {
             style={[styles.decorationStar, { transform: [{ rotate: starSpin }] }]}
           />
           
-    
+          
           <TouchableOpacity 
             style={styles.categoryButton}
             onPress={() => setCategoryModalVisible(true)}
@@ -190,26 +226,13 @@ export default function RouletteScreen() {
             <Ionicons name="chevron-down" size={22} color="#777" />
           </TouchableOpacity>
           
-
+          
           <View style={styles.wheelOuterContainer}>
             {options.length > 1 ? (
-              <WheelOfFortune
-                ref={wheelRef}
-                options={{
-                  rewards: options,
-                  knobSize: 30,
-                  borderWidth: 5,
-                  borderColor: '#fff',
-                  innerRadius: 30,
-                  duration: 6000,
-                  backgroundColor: 'transparent',
-                  textAngle: 'horizontal',
-                  knobSource: require('../assets/saloIMG/miku.png'),
-                  getWinner: getWinner,
-                  colors: getColorArray(options.length),
-                  textStyle: styles.wheelTextStyle,
-                }}
-                style={styles.wheel}
+              <VerticalWheelOfFortune
+                options={options}
+                colors={options.map((_, index) => getColorForIndex(index))}
+                onFinish={handleSpinResult}
               />
             ) : (
               <View style={styles.emptyWheelContainer}>
@@ -223,17 +246,8 @@ export default function RouletteScreen() {
               </View>
             )}
           </View>
-
-          <TouchableOpacity
-            style={[styles.spinButton, (isSpinning || options.length <= 1) && styles.disabledButton]}
-            onPress={spinWheel}
-            disabled={isSpinning || options.length <= 1}
-          >
-            <Ionicons name="refresh-circle" size={24} color="white" style={styles.spinIcon} />
-            <Text style={styles.buttonText}>¡Girar!</Text>
-          </TouchableOpacity>
           
-
+          
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -251,7 +265,7 @@ export default function RouletteScreen() {
             </TouchableOpacity>
           </View>
           
-
+          
           <View style={styles.optionsListContainer}>
             <Text style={styles.optionsListTitle}>Opciones actuales:</Text>
             <ScrollView 
@@ -262,12 +276,22 @@ export default function RouletteScreen() {
                 <View key={index} style={styles.optionItem}>
                   <View style={[styles.optionColorIndicator, { backgroundColor: getColorForIndex(index) }]} />
                   <Text style={styles.optionText}>{option}</Text>
+                  
+                  
+                  {currentCategory === 'personalizada' && (
+                    <TouchableOpacity 
+                      style={styles.deleteOptionButton}
+                      onPress={() => deleteOption(option)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
             </ScrollView>
           </View>
 
-
+          
           <Modal
             animationType="slide"
             transparent={true}
@@ -320,7 +344,7 @@ export default function RouletteScreen() {
             </View>
           </Modal>
           
-
+          
           <Modal
             animationType="fade"
             transparent={true}
@@ -357,31 +381,6 @@ export default function RouletteScreen() {
       </ScrollView>
     </ImageBackground>
   );
-}
-
-
-function getCategoryName(category) {
-  const names = {
-    comidas: 'Comidas 🍕',
-    actividades: 'Actividades 🎮',
-    lugares: 'Lugares 🗺️',
-    personalizada: 'Mi lista personalizada ✏️'
-  };
-  return names[category] || category;
-}
-
-function getColorForIndex(index) {
-  const colors = [
-    '#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF',
-    '#FF9A8C', '#C1CFDA', '#A6CF98', '#F9F9C5',
-    '#FBD1A2', '#7DEDFF', '#B983FF', '#ECB390'
-  ];
-  
-  return colors[index % colors.length];
-}
-
-function getColorArray(length) {
-  return Array(length).fill().map((_, index) => getColorForIndex(index));
 }
 
 const styles = StyleSheet.create({
@@ -421,17 +420,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderRadius: 25,
     marginVertical: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 3,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
   },
   categoryButtonText: {
     flex: 1,
@@ -442,35 +441,27 @@ const styles = StyleSheet.create({
   },
   wheelOuterContainer: {
     width: WHEEL_SIZE,
-    height: WHEEL_SIZE,
+    height: WHEEL_SIZE + 70, 
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: WHEEL_SIZE / 2,
+    marginVertical: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 20, 
     padding: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 7,
+    elevation: 8,
     borderWidth: 3,
-    borderColor: '#f0f0f0',
-  },
-  wheel: {
-    width: '100%',
-    height: '100%',
-  },
-  wheelTextStyle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: 'white',
+    borderColor: appColors.primary,
+    overflow: 'visible', 
   },
   emptyWheelContainer: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
   emptyWheelText: {
@@ -478,80 +469,64 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 20,
+    maxWidth: '80%', 
   },
   emptyWheelImage: {
     width: 80,
     height: 80,
     opacity: 0.7,
+    alignSelf: 'center', 
   },
-  spinButton: {
-    backgroundColor: appColors.primary,
+  inputContainer: {
     flexDirection: 'row',
+    marginVertical: 18,
+    width: '100%',
+  },
+  input: {
+    flex: 1,
+    height: 52,
+    borderWidth: 1.5,
+    borderColor: '#d8d8d8',
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    marginRight: 12,
+    backgroundColor: 'white',
+    fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  addButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: appColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 25,
-    paddingVertical: 14,
-    borderRadius: 30,
-    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 25,
-    transform: [{ rotate: '0.5deg' }],
-  },
-  spinIcon: {
-    marginRight: 8,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   disabledButton: {
     opacity: 0.6,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    marginVertical: 15,
-    width: '100%',
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 25,
-    paddingHorizontal: 15,
-    marginRight: 10,
-    backgroundColor: 'white',
-    fontSize: 16,
-  },
-  addButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: appColors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
   optionsListContainer: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 15,
-    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 18,
+    padding: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 22,
     borderBottomLeftRadius: 28,
@@ -565,6 +540,7 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     maxHeight: 150,
+    marginTop: 5,
   },
   optionsListContent: {
     paddingRight: 10,
@@ -573,6 +549,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -586,6 +563,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
   },
+  deleteOptionButton: {
+    padding: 5,
+    marginLeft: 'auto', 
+  },
   buttonIcon: {
     marginLeft: 5,
   },
@@ -596,15 +577,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    width: '85%',
+    width: '90%',
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 22,
+    padding: 22,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    shadowRadius: 10,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -613,28 +594,27 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: appColors.primary,
   },
   categoryList: {
-    maxHeight: 320,
+    maxHeight: 300,
   },
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 12,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   activeCategoryItem: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(144, 202, 249, 0.2)',
   },
   categoryItemText: {
-    fontSize: 18,
-    marginLeft: 15,
+    fontSize: 16,
+    marginLeft: 12,
     color: '#333',
   },
   resultModalOverlay: {
@@ -644,33 +624,34 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   resultModalContainer: {
-    width: '80%',
+    position: 'relative',
+    width: '85%',
+    maxWidth: 320,
     borderRadius: 20,
     overflow: 'hidden',
-    position: 'relative',
   },
   resultModalBackground: {
     width: '100%',
+    overflow: 'hidden',
   },
   resultModalBackgroundImage: {
     borderRadius: 20,
   },
   resultModalContent: {
-    padding: 25,
+    padding: 22,
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   resultModalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: appColors.text,
+    color: appColors.primary,
     marginBottom: 15,
-    textAlign: 'center',
   },
   resultModalText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: appColors.primary,
+    color: '#444',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -678,34 +659,25 @@ const styles = StyleSheet.create({
     backgroundColor: appColors.primary,
     paddingVertical: 12,
     paddingHorizontal: 25,
-    borderRadius: 30,
-    marginTop: 10,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 25,
-    transform: [{ rotate: '0.5deg' }],
+    borderRadius: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
-    elevation: 4,
+    elevation: 3,
   },
   resultModalButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
   },
   resultStamp: {
     position: 'absolute',
     width: 80,
     height: 80,
-    bottom: -15,
-    right: -15,
-    transform: [{ rotate: '15deg' }],
+    bottom: -20,
+    right: -20,
     zIndex: 10,
-  },
+    transform: [{ rotate: '15deg' }],
+  }
 });
