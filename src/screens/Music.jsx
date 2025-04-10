@@ -44,7 +44,7 @@ export default function MusicScreen() {
     loadSavedSongs();
   }, []);
 
-  // Función para obtener el token de Spotify
+  
   const getSpotifyToken = async () => {
     setLoading(true);
     try {
@@ -412,7 +412,7 @@ export default function MusicScreen() {
         </View>
       </Modal>
 
-      {/* Modal para ver detalles de la canción guardada */}
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   spotifyButton: {
-    backgroundColor: '#1DB954', // Color de Spotify
+    backgroundColor: '#1DB954', 
     flexDirection: 'row',
     borderRadius: 8,
     padding: 14,
