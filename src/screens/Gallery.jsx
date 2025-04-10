@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
+import {
+  View,
+  Text,
   StyleSheet,
   Image,
   FlatList,
   TouchableOpacity,
   Modal,
   ActivityIndicator,
-  ImageBackground,
   Dimensions,
   Alert,
-  TouchableWithoutFeedback,
-  ScrollView
+  SafeAreaView,
+  RefreshControl
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
@@ -20,38 +19,119 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabase';
 import { appColors } from '../utils/colors';
 import * as FileSystem from 'expo-file-system';
-
-
-const decode = (base64String) => {
-  const byteCharacters = atob(base64String);
-  const byteNumbers = new Array(byteCharacters.length);
-  
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  
-  const byteArray = new Uint8Array(byteNumbers);
-  return byteArray;
-};
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/config';
 
 const { width } = Dimensions.get('window');
-const THUMBNAIL_SIZE = width / 3 - 10;
+const THUMBNAIL_SIZE = (width - 48) / 3;
 
-export default function GalleryScreen({ currentUser }) {
+
+
+const processImageUrl = (url, noCache = false) => {
+  if (!url) return '';
+  
+  
+  if (url.startsWith('http')) {
+    
+    return noCache ? `${url.split('?')[0]}?t=${Date.now()}` : url;
+  } 
+  
+  else {
+    return noCache 
+      ? `${SUPABASE_URL}/storage/v1/object/public/${url}?t=${Date.now()}`
+      : `${SUPABASE_URL}/storage/v1/object/public/${url}`;
+  }
+};
+
+
+const PhotoItem = React.memo(({ item, onPress, isCurrentUser, onImageLoad, isLoaded }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  
+  const imageUrl = React.useMemo(() => {
+    return processImageUrl(item.image_url, false); 
+  }, [item.image_url]);
+  
+  return (
+    <TouchableOpacity 
+      style={styles.thumbnailContainer}
+      onPress={() => onPress(item)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.thumbnailWrapper}>
+        {!imageError ? (
+          <Image 
+            source={{ 
+              uri: imageUrl,
+              cache: 'default',
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Accept': '*/*'
+              }
+            }}
+            style={styles.thumbnail}
+            resizeMode="cover"
+            loadingIndicatorSource={require('../assets/placeholder.png')}
+            onLoadStart={() => console.log("Cargando imagen:", item.image_url)}
+            onLoad={() => {
+              console.log("Imagen cargada correctamente:", item.image_url);
+              
+              if (!isLoaded) {
+                onImageLoad(item.id);
+              }
+            }}
+            onError={(e) => {
+              console.error("Error cargando imagen:", item.image_url, e.nativeEvent.error);
+              setImageError(true);
+              onImageLoad(item.id);
+            }}
+          />
+        ) : (
+          <View style={styles.imageErrorContainer}>
+            <Ionicons name="image-outline" size={32} color="#999" />
+            <Text style={styles.imageErrorText}>Error al cargar</Text>
+          </View>
+        )}
+        
+        {!isLoaded && !imageError && (
+          <ActivityIndicator 
+            style={styles.thumbnailLoader}
+            color={appColors.primary}
+            size="small"
+          />
+        )}
+      </View>
+      
+      {isCurrentUser && (
+        <View style={styles.ownerIndicator}>
+          <Text style={styles.ownerText}>Tú</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+});
+
+export default function GalleryScreen({ currentUser = 'tao' }) {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [loadedImages, setLoadedImages] = useState({});
 
+  
   useEffect(() => {
     fetchPhotos();
   }, []);
 
+  
+
   const fetchPhotos = async () => {
     try {
       setRefreshing(true);
+      
+      
+      setLoadedImages({});
       
       const { data, error } = await supabase
         .from('photos')
@@ -61,6 +141,7 @@ export default function GalleryScreen({ currentUser }) {
       if (error) throw error;
       
       if (data) {
+        console.log(`Cargadas ${data.length} fotos`);
         setPhotos(data);
       }
     } catch (error) {
@@ -73,100 +154,38 @@ export default function GalleryScreen({ currentUser }) {
   };
 
   
-  const syncBucketWithDatabase = async () => {
+  const pickAndUploadImage = async () => {
     try {
-      setLoading(true);
       
-      
-      const { data: files, error: bucketError } = await supabase
-        .storage
-        .from('photo_gallery')
-        .list();
-      
-      if (bucketError) throw bucketError;
-      
-      
-      const { data: existingPhotos, error: dbError } = await supabase
-        .from('photos')
-        .select('image_url');
-      
-      if (dbError) throw dbError;
-      
-      
-      const existingUrls = existingPhotos.map(p => {
-        
-        const urlParts = p.image_url.split('/');
-        return urlParts[urlParts.length - 1];
-      });
-      
-      const newFiles = files.filter(file => !existingUrls.includes(file.name));
-      
-      
-      for (const file of newFiles) {
-        const { data: publicUrlData } = supabase
-          .storage
-          .from('photo_gallery')
-          .getPublicUrl(file.name);
-        
-        
-        const isUserSalo = file.name.startsWith('salo-');
-        const isUserTao = file.name.startsWith('tao-');
-        const uploadedBy = isUserSalo ? 'salo' : (isUserTao ? 'tao' : 'user');
-        
-        await supabase
-          .from('photos')
-          .insert([{
-            image_url: publicUrlData.publicUrl,
-            caption: '',
-            uploaded_by: uploadedBy,
-            created_at: new Date(file.created_at || Date.now()).toISOString()
-          }]);
-      }
-      
-      
-      await fetchPhotos();
-      
-      if (newFiles.length > 0) {
-        Alert.alert('Sincronización completa', `Se han agregado ${newFiles.length} fotos nuevas`);
-      }
-    } catch (error) {
-      console.error('Error sincronizando fotos:', error);
-      Alert.alert('Error', 'No se pudieron sincronizar las imágenes con la base de datos');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openImagePicker = async () => {
-    try {
       console.log("Solicitando permisos de galería...");
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
-      console.log("Estado de permisos:", status);
       if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitamos permiso para acceder a tus fotos');
+        Alert.alert('Permiso denegado', 'Necesitamos acceso a la galería para subir fotos');
         return;
       }
+
+      console.log("Estado de permisos:", status);
+      
       
       console.log("Abriendo galería...");
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,  
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, 
         allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.7,
+        quality: 0.8,
       });
       
       console.log("Resultado de selección:", result.canceled ? "Cancelado" : "Imagen seleccionada");
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        console.log("URI de la imagen:", result.assets[0].uri);
-        uploadImage(result.assets[0].uri);
-      }
+      
+      if (result.canceled) return;
+      
+      
+      const uri = result.assets[0].uri;
+      console.log("URI de la imagen:", uri);
+      uploadImage(uri);
     } catch (error) {
-      console.error("Error al abrir el selector de imágenes:", error);
-      Alert.alert(
-        'Error al abrir galería', 
-        'No se pudo acceder a la galería de imágenes. Por favor intenta de nuevo.'
-      );
+      console.error('Error al seleccionar imagen:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
     }
   };
 
@@ -178,289 +197,323 @@ export default function GalleryScreen({ currentUser }) {
       console.log("Comprimiendo imagen...");
       const compressed = await manipulateAsync(
         uri,
-        [{ resize: { width: 500 } }],
-        { compress: 0.3, format: SaveFormat.JPEG }
+        [{ resize: { width: 800 } }],
+        { compress: 0.7, format: SaveFormat.JPEG }
       );
       
       
-      const userIdentifier = currentUser === 'salo' || currentUser === 'tao' 
-        ? currentUser 
-        : 'salo'; 
-      
+      const userIdentifier = currentUser || 'user';
       const fileName = `${userIdentifier}-${Date.now()}.jpg`;
       
       
-      const base64 = await FileSystem.readAsStringAsync(compressed.uri, {
-        encoding: FileSystem.EncodingType.Base64
+      const formData = new FormData();
+      formData.append('file', {
+        uri: compressed.uri,
+        name: fileName,
+        type: 'image/jpeg'
       });
       
-      console.log("Subiendo imagen...");
+      
+      console.log("Subiendo imagen directamente...");
       
       
-      const uploadPromise = new Promise(async (resolve, reject) => {
-        try {
-          const { data, error } = await supabase.storage
-            .from('photo_gallery')
-            .upload(fileName, base64, { 
-              contentType: 'image/jpeg',
-              upsert: true
-            });
-            
-          if (error) reject(error);
-          else resolve(data);
-        } catch (err) {
-          reject(err);
+      const response = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/photo_gallery/${fileName}`, 
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 
+            'x-upsert': 'true'
+          },
+          body: formData
         }
-      });
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Tiempo de espera agotado")), 30000)
       );
       
-      
-      const data = await Promise.race([uploadPromise, timeoutPromise]);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error de Supabase: ${response.status} - ${errorText}`);
+      }
       
       console.log("Archivo subido correctamente");
       
       
-      const { data: publicUrlData } = supabase
-        .storage
-        .from('photo_gallery')
-        .getPublicUrl(fileName);
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/photo_gallery/${fileName}`;
       
       
       const { error: dbError } = await supabase
         .from('photos')
         .insert([{
-          image_url: publicUrlData.publicUrl,
+          image_url: publicUrl,
           caption: '',
-          uploaded_by: userIdentifier, 
+          uploaded_by: userIdentifier,
           created_at: new Date().toISOString()
         }]);
-      
+          
       if (dbError) throw dbError;
+      
       
       fetchPhotos();
       Alert.alert('Éxito', '¡Foto subida correctamente!');
       
     } catch (error) {
       console.error('Error completo:', error);
-      Alert.alert(
-        'Error al subir imagen', 
-        'Verifica tu conexión a internet e inténtalo de nuevo.'
-      );
+      Alert.alert('Error al subir imagen', error.message);
     } finally {
       setUploadingPhoto(false);
     }
   };
 
+  
   const showPhotoDetail = (photo) => {
     setSelectedPhoto(photo);
     setModalVisible(true);
   };
 
-  const renderPhotoItem = ({ item }) => {
-    return (
-      <TouchableOpacity 
-        style={styles.thumbnailContainer}
-        onPress={() => showPhotoDetail(item)}
-        activeOpacity={0.8}
-      >
-        <Image 
-          source={{ uri: item.image_url }} 
-          style={styles.thumbnail}
-          resizeMode="cover"
-        />
-        {item.uploaded_by === currentUser && (
-          <View style={styles.ownerIndicator}>
-            <Text style={styles.ownerText}>Tú</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
+  
+
+  const deletePhoto = async (id) => {
+    try {
+      setLoading(true);
+      setModalVisible(false);
+      
+      
+      const photoToDelete = photos.find(photo => photo.id === id);
+      if (!photoToDelete) {
+        throw new Error('Foto no encontrada');
+      }
+      
+      
+      if (photoToDelete.uploaded_by !== currentUser) {
+        throw new Error('No tienes permiso para eliminar esta foto');
+      }
+      
+      
+      setPhotos(currentPhotos => currentPhotos.filter(photo => photo.id !== id));
+      
+      
+      const imageUrl = photoToDelete.image_url;
+      const fileName = imageUrl.substring(imageUrl.lastIndexOf('/') + 1).split('?')[0];
+      
+      
+      await supabase.rpc('set_user_context', { user_id: currentUser });
+      
+      
+      const { error: dbError } = await supabase
+        .from('photos')
+        .delete()
+        .eq('id', id);
+      
+      if (dbError) throw dbError;
+      
+      
+      const { error: storageError } = await supabase
+        .storage
+        .from('photo_gallery')
+        .remove([fileName]);
+      
+      if (storageError) {
+        console.error("Error al eliminar del almacenamiento:", storageError);
+      }
+      
+      
+      setTimeout(() => {
+        fetchPhotos();
+      }, 500);
+      
+      Alert.alert('Éxito', '¡Foto eliminada correctamente!');
+      
+    } catch (error) {
+      console.error("Error completo:", error);
+      Alert.alert('Error', `No se pudo eliminar la foto: ${error.message}`);
+      fetchPhotos();
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getPhotoCreationDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  
+  const getPhotoDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Fecha desconocida';
+    }
   };
 
+  
   return (
-    <ImageBackground 
-      source={require('../assets/paper_texture.jpg')} 
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>Nuestra Galería</Text>
-          <TouchableOpacity 
-            style={styles.syncButton}
-            onPress={syncBucketWithDatabase}
-            disabled={loading || refreshing}
-          >
-            <Ionicons name="sync" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={appColors.primary} />
-          </View>
-        ) : photos.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="images-outline" size={60} color="#999" />
-            <Text style={styles.emptyText}>No hay fotos aún.</Text>
-            <Text style={styles.emptySubtext}>¡Sube tu primera foto para crear recuerdos juntos!</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={photos}
-            renderItem={renderPhotoItem}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={3}
-            contentContainerStyle={styles.photoGrid}
-            refreshing={refreshing}
-            onRefresh={fetchPhotos}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Nuestra Galería</Text>
+      </View>
+      
+      <FlatList
+        data={photos}
+        renderItem={({ item }) => (
+          <PhotoItem 
+            item={item}
+            onPress={showPhotoDetail}
+            isCurrentUser={item.uploaded_by === currentUser}
+            isLoaded={!!loadedImages[item.id]} 
+            onImageLoad={(id) => setLoadedImages(prev => ({...prev, [id]: true}))}
           />
         )}
-
-        <TouchableOpacity 
-          style={[styles.addButton, uploadingPhoto && styles.disabledButton]}
-          onPress={openImagePicker}
-          disabled={uploadingPhoto}
-        >
-          {uploadingPhoto ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="camera" size={24} color="white" />
-              <Text style={styles.buttonText}>Subir Foto</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        keyExtractor={item => item.id.toString()}
+        numColumns={3}
+        contentContainerStyle={styles.photoList}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={fetchPhotos}
+            colors={[appColors.primary]} 
+          />
+        }
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            {loading ? (
+              <ActivityIndicator color={appColors.primary} size="large" />
+            ) : (
+              <Text style={styles.emptyText}>No hay fotos para mostrar</Text>
+            )}
+          </View>
+        )}
+      />
       
-        
-        <Modal
-          visible={modalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <View style={styles.modalContent}>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>
-                      {selectedPhoto && getPhotoCreationDate(selectedPhoto.created_at)}
-                    </Text>
-                    <TouchableOpacity onPress={() => setModalVisible(false)}>
-                      <Ionicons name="close-circle" size={28} color="#fff" />
+      <TouchableOpacity
+        style={[styles.fab, uploadingPhoto && styles.disabledFab]}
+        onPress={pickAndUploadImage}
+        disabled={uploadingPhoto}
+      >
+        {uploadingPhoto ? (
+          <ActivityIndicator color="white" size="small" />
+        ) : (
+          <Ionicons name="camera" size={24} color="white" />
+        )}
+      </TouchableOpacity>
+
+    
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Ionicons name="close-circle" size={30} color="white" />
+            </TouchableOpacity>
+            
+            {selectedPhoto && (
+              <View style={styles.photoDetailContainer}>
+                <Image 
+                  source={{ 
+                    uri: processImageUrl(selectedPhoto.image_url),
+                    cache: 'reload',
+                    headers: {
+                      Accept: 'image/jpeg,image/png,image/jpg'
+                    }
+                  }}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                  onError={(e) => {
+                    console.error("Error cargando imagen en detalle:", selectedPhoto.image_url, e.nativeEvent.error);
+                  }}
+                />
+                
+                <View style={styles.photoInfo}>
+                  <Text style={styles.photoDate}>
+                    {getPhotoDate(selectedPhoto.created_at)}
+                  </Text>
+                  
+                  <Text style={styles.photoOwner}>
+                    Subida por {selectedPhoto.uploaded_by === 'salo' ? 'Salo' : 'Tao'}
+                  </Text>
+                  
+                  {selectedPhoto.uploaded_by === currentUser && (
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => {
+                        Alert.alert(
+                          'Eliminar foto',
+                          '¿Estás seguro de que quieres eliminar esta foto?',
+                          [
+                            {text: 'Cancelar', style: 'cancel'},
+                            {text: 'Eliminar', style: 'destructive', onPress: () => deletePhoto(selectedPhoto.id)}
+                          ]
+                        );
+                      }}
+                    >
+                      <Ionicons name="trash" size={18} color="white" />
+                      <Text style={styles.deleteText}>Eliminar</Text>
                     </TouchableOpacity>
-                  </View>
-                  
-                  <ScrollView 
-                    contentContainerStyle={styles.photoViewContainer}
-                    maximumZoomScale={3}
-                    minimumZoomScale={1}
-                  >
-                    {selectedPhoto && (
-                      <Image
-                        source={{ uri: selectedPhoto.image_url }}
-                        style={styles.fullSizeImage}
-                        resizeMode="contain"
-                      />
-                    )}
-                  </ScrollView>
-                  
-                  <View style={styles.photoInfo}>
-                    {selectedPhoto && selectedPhoto.caption && (
-                      <Text style={styles.photoCaption}>{selectedPhoto.caption}</Text>
-                    )}
-                    <Text style={styles.photoUploader}>
-                      Subida por {selectedPhoto?.uploaded_by === 'salo' ? 'Salo' : 'Tao'}
-                    </Text>
-                  </View>
+                  )}
                 </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      </View>
-    </ImageBackground>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  backgroundImage: {
+  container: {
     flex: 1,
-    width: '100%',
+    backgroundColor: '#fff',
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  header: {
     padding: 15,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-    position: 'relative',
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: appColors.primary,
-    textAlign: 'center',
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    color: appColors.text,
   },
-  syncButton: {
-    position: 'absolute',
-    right: 0,
-    backgroundColor: appColors.accent,
-    padding: 8,
-    borderRadius: 20,
-    elevation: 3,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoGrid: {
-    paddingBottom: 80, 
+  photoList: {
+    padding: 10,
+    paddingBottom: 80,
   },
   thumbnailContainer: {
-    margin: 5,
-    borderRadius: 15,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
     position: 'relative',
+    margin: 4,
+  },
+  thumbnailWrapper: {
+    width: THUMBNAIL_SIZE,
+    height: THUMBNAIL_SIZE,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   thumbnail: {
     width: THUMBNAIL_SIZE,
     height: THUMBNAIL_SIZE,
+  },
+  thumbnailLoader: {
+    position: 'absolute',
   },
   ownerIndicator: {
     position: 'absolute',
     bottom: 5,
     right: 5,
     backgroundColor: appColors.primary,
-    paddingHorizontal: 6,
     paddingVertical: 2,
+    paddingHorizontal: 6,
     borderRadius: 10,
   },
   ownerText: {
@@ -468,114 +521,106 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-  addButton: {
+  fab: {
     position: 'absolute',
     bottom: 20,
-    alignSelf: 'center',
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: appColors.primary,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    elevation: 4,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 8,
+  disabledFab: {
+    backgroundColor: appColors.disabled,
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingVertical: 50,
     alignItems: 'center',
-    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#666',
-    marginTop: 20,
-  },
-  emptySubtext: {
+    color: '#999',
     fontSize: 16,
-    color: '#888',
     textAlign: 'center',
-    marginTop: 10,
   },
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0,0,0,0.9)',
     justifyContent: 'center',
-    alignItems: 'center',
   },
   modalContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 10,
+  },
+  photoDetailContainer: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  modalTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  photoViewContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullSizeImage: {
-    width: width,
-    height: width,
-    maxHeight: Dimensions.get('window').height * 0.7,
+  fullImage: {
+    width: '100%',
+    height: '70%',
   },
   photoInfo: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 40,
     left: 0,
     right: 0,
-    padding: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  photoCaption: {
+  photoDate: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 5,
   },
-  photoUploader: {
-    color: '#ccc',
+  photoOwner: {
+    color: 'white',
     fontSize: 14,
-    fontStyle: 'italic',
   },
-  refreshButton: {
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    alignSelf: 'flex-start',
+    marginTop: 10,
+  },
+  deleteText: {
+    color: 'white',
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  imageErrorContainer: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: appColors.secondary,
-    padding: 12,
-    borderRadius: 30,
-    elevation: 4,
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  imageErrorText: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 5,
   },
 });
