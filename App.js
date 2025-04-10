@@ -87,9 +87,15 @@ export default function App() {
           <Tab.Screen name="Mapa">
             {(props) => <MapScreen {...props} currentUser={currentUser} />}
           </Tab.Screen>
-          <Tab.Screen name="Música" component={MusicScreen} />
-          <Tab.Screen name="Ruleta" component={RouletteScreen} />
-          <Tab.Screen name="Fotos" component={GalleryScreen} />
+          <Tab.Screen name="Música">
+            {(props) => <MusicScreen {...props} currentUser={currentUser} />}
+          </Tab.Screen>
+          <Tab.Screen name="Ruleta">
+            {(props) => <RouletteScreen {...props} currentUser={currentUser} />}
+          </Tab.Screen>
+          <Tab.Screen name="Fotos">
+            {(props) => <GalleryScreen {...props} currentUser={currentUser} />}
+          </Tab.Screen>
         </Tab.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
