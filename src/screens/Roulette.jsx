@@ -200,13 +200,24 @@ export default function RouletteScreen() {
 
   return (
     <ImageBackground 
-      source={require('../assets/paper_texture.jpg')} 
+      source={require('../assets/fondos/naranjasFondo.jpg')} 
       style={styles.backgroundImage}
       resizeMode="cover"
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.overlay}>
-          <Text style={styles.title}>Ruleta de Decisiones</Text>
+          
+          <View style={styles.titleContainer}>
+            <Image 
+              source={require('../assets/saloIMG/estrella.png')}
+              style={styles.titleLeftStar}
+            />
+            <Text style={styles.title}>Ruleta de Decisiones</Text>
+            <Image 
+              source={require('../assets/saloIMG/estrella.png')}
+              style={styles.titleRightStar}
+            />
+          </View>
           
           
           <Animated.Image
@@ -227,24 +238,34 @@ export default function RouletteScreen() {
           </TouchableOpacity>
           
           
-          <View style={styles.wheelOuterContainer}>
-            {options.length > 1 ? (
-              <VerticalWheelOfFortune
-                options={options}
-                colors={options.map((_, index) => getColorForIndex(index))}
-                onFinish={handleSpinResult}
-              />
-            ) : (
-              <View style={styles.emptyWheelContainer}>
-                <Text style={styles.emptyWheelText}>
-                  Se necesitan al menos 2 opciones para girar la ruleta
-                </Text>
-                <Image
-                  source={require('../assets/saloIMG/rabbit.png')}
-                  style={styles.emptyWheelImage}
+          <View style={styles.wheelOuterWrapper}>
+            <Image 
+              source={require('../assets/saloIMG/estampilla.png')}
+              style={styles.wheelStampDecoration}
+            />
+            <View style={styles.wheelOuterContainer}>
+              {options.length > 1 ? (
+                <VerticalWheelOfFortune
+                  options={options}
+                  colors={options.map((_, index) => getColorForIndex(index))}
+                  onFinish={handleSpinResult}
                 />
-              </View>
-            )}
+              ) : (
+                <View style={styles.emptyWheelContainer}>
+                  <Text style={styles.emptyWheelText}>
+                    Se necesitan al menos 2 opciones para girar la ruleta
+                  </Text>
+                  <Image
+                    source={require('../assets/saloIMG/rabbit.png')}
+                    style={styles.emptyWheelImage}
+                  />
+                </View>
+              )}
+            </View>
+            <Image 
+              source={require('../assets/Icons/Tao.png')}
+              style={styles.wheelIconDecoration}
+            />
           </View>
           
           
@@ -267,16 +288,25 @@ export default function RouletteScreen() {
           
           
           <View style={styles.optionsListContainer}>
-            <Text style={styles.optionsListTitle}>Opciones actuales:</Text>
+            <View style={styles.optionsListHeaderContainer}>
+              <Text style={styles.optionsListTitle}>Opciones actuales:</Text>
+              <Image 
+                source={require('../assets/Icons/Sol.png')}
+                style={styles.optionsListHeaderIcon}
+              />
+            </View>
+            
             <ScrollView 
               style={styles.optionsList}
               contentContainerStyle={styles.optionsListContent}
             >
               {options.map((option, index) => (
                 <View key={index} style={styles.optionItem}>
-                  <View style={[styles.optionColorIndicator, { backgroundColor: getColorForIndex(index) }]} />
+                  <View style={[
+                    styles.optionColorIndicator, 
+                    { backgroundColor: getColorForIndex(index) }
+                  ]} />
                   <Text style={styles.optionText}>{option}</Text>
-                  
                   
                   {currentCategory === 'personalizada' && (
                     <TouchableOpacity 
@@ -360,7 +390,30 @@ export default function RouletteScreen() {
                 >
                   <View style={styles.resultModalContent}>
                     <Text style={styles.resultModalTitle}>¡La decisión es!</Text>
-                    <Text style={styles.resultModalText}>{result}</Text>
+                    
+                    
+                    <View style={styles.resultDisplayContainer}>
+                      <Text style={styles.resultModalText}>{result}</Text>
+                      
+                      
+                      <Image 
+                        source={require('../assets/saloIMG/estrella.png')}
+                        style={styles.resultStarTopLeft}
+                      />
+                      <Image 
+                        source={require('../assets/saloIMG/estrella.png')}
+                        style={styles.resultStarTopRight}
+                      />
+                      <Image 
+                        source={require('../assets/saloIMG/estrella.png')}
+                        style={styles.resultStarBottomLeft}
+                      />
+                      <Image 
+                        source={require('../assets/saloIMG/estrella.png')}
+                        style={styles.resultStarBottomRight}
+                      />
+                    </View>
+                    
                     <TouchableOpacity
                       style={styles.resultModalButton}
                       onPress={() => setResultModalVisible(false)}
@@ -398,15 +451,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 15,
+    position: 'relative',
+    width: '100%',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 15,
     color: appColors.primary,
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 255, 255, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  titleLeftStar: {
+    width: 30,
+    height: 30,
+    marginRight: 10,
+    transform: [{ rotate: '-20deg' }]
+  },
+  titleRightStar: {
+    width: 30,
+    height: 30,
+    marginLeft: 10,
+    transform: [{ rotate: '20deg' }]
   },
   decorationStar: {
     position: 'absolute',
@@ -415,6 +487,53 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     zIndex: 10,
+  },
+  wheelOuterWrapper: {
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 15,
+  },
+  wheelStampDecoration: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    top: -20,
+    left: 10,
+    zIndex: 10,
+    transform: [{ rotate: '-15deg' }],
+  },
+  wheelIconDecoration: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    bottom: -10,
+    right: 10,
+    zIndex: 10,
+    transform: [{ rotate: '10deg' }],
+  },
+  wheelOuterContainer: {
+    width: WHEEL_SIZE,
+    height: WHEEL_SIZE + 70, 
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 25, 
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 7,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: appColors.primary,
+    overflow: 'visible',
+    
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 25,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 22,
+    transform: [{ rotate: '0.3deg' }],
   },
   categoryButton: {
     flexDirection: 'row',
@@ -431,6 +550,12 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1.5,
     borderColor: '#e8e8e8',
+    
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 22,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 26,
+    transform: [{ rotate: '-0.4deg' }],
   },
   categoryButtonText: {
     flex: 1,
@@ -438,44 +563,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginLeft: 8,
-  },
-  wheelOuterContainer: {
-    width: WHEEL_SIZE,
-    height: WHEEL_SIZE + 70, 
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 20, 
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 7,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: appColors.primary,
-    overflow: 'visible', 
-  },
-  emptyWheelContainer: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  emptyWheelText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-    maxWidth: '80%', 
-  },
-  emptyWheelImage: {
-    width: 80,
-    height: 80,
-    opacity: 0.7,
-    alignSelf: 'center', 
   },
   inputContainer: {
     flexDirection: 'row',
@@ -510,6 +597,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
+    transform: [{ rotate: '0.5deg' }],
   },
   disabledButton: {
     opacity: 0.6,
@@ -531,11 +619,21 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 22,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 20,
+    transform: [{ rotate: '-0.2deg' }],
+  },
+  optionsListHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  optionsListHeaderIcon: {
+    width: 30,
+    height: 30,
   },
   optionsListTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
     color: '#555',
   },
   optionsList: {
@@ -570,52 +668,55 @@ const styles = StyleSheet.create({
   buttonIcon: {
     marginLeft: 5,
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
+  resultDisplayContainer: {
+    position: 'relative',
     width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 22,
-    padding: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 15,
+    padding: 20,
+    marginVertical: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    minHeight: 100,
+    borderWidth: 2,
+    borderColor: appColors.secondary,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: appColors.primary,
+  resultStarTopLeft: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    top: -10,
+    left: -10,
+    transform: [{ rotate: '-20deg' }],
   },
-  categoryList: {
-    maxHeight: 300,
+  resultStarTopRight: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    top: -10,
+    right: -10,
+    transform: [{ rotate: '20deg' }],
   },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  resultStarBottomLeft: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    bottom: -10,
+    left: -10,
+    transform: [{ rotate: '30deg' }],
   },
-  activeCategoryItem: {
-    backgroundColor: 'rgba(144, 202, 249, 0.2)',
-  },
-  categoryItemText: {
-    fontSize: 16,
-    marginLeft: 12,
-    color: '#333',
+  resultStarBottomRight: {
+    position: 'absolute',
+    width: 25,
+    height: 25,
+    bottom: -10,
+    right: -10,
+    transform: [{ rotate: '-30deg' }],
   },
   resultModalOverlay: {
     flex: 1,
@@ -647,12 +748,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: appColors.primary,
     marginBottom: 15,
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   resultModalText: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#444',
-    marginBottom: 20,
+    marginBottom: 5,
     textAlign: 'center',
   },
   resultModalButton: {
@@ -665,11 +769,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
+    marginTop: 10,
+    
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 25,
+    transform: [{ rotate: '0.5deg' }],
   },
   resultModalButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   resultStamp: {
     position: 'absolute',
@@ -679,5 +793,5 @@ const styles = StyleSheet.create({
     right: -20,
     zIndex: 10,
     transform: [{ rotate: '15deg' }],
-  }
+  },
 });

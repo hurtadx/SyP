@@ -506,8 +506,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.27,
     shadowRadius: 4.65,
     elevation: 6,
-    overflow: 'hidden', // Evita que el contenido sea visible cuando el panel está cerrado
-    transition: 'height 0.3s ease', // Añade transición CSS nativa
+    overflow: 'hidden', 
+    transition: 'height 0.3s ease', 
   },
   panelHeader: {
     flexDirection: 'row',
