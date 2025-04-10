@@ -300,14 +300,14 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
   return (
     <ImageBackground 
-      source={require('../assets/fresitasFondo.jpg')} 
+      source={require('../assets/fondos/fresitasFondo.jpg')} 
       style={styles.backgroundImage}
       resizeMode="cover"
     >
       <View style={styles.overlay}>
         <Text style={styles.title}>Sal y Pimienta</Text>
 
-        {/* Reloj con conejo */}
+        
         <View style={styles.clockWrapper}>
           <Image
             source={require('../assets/saloIMG/rabbit.png')}
@@ -319,7 +319,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
           </View>
         </View>
 
-        {/* Botón de besito con estrellas */}
+        
         <View style={styles.papercutWrapper}>
           <View style={styles.buttonWrapper}>
             <TouchableOpacity
@@ -341,7 +341,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
           </View>
         </View>
 
-        {/* Botón de recordatorios con estampilla e indicador de estado */}
+        
         <View style={styles.reminderSectionWrapper}>
           <View style={[styles.papercutWrapper, styles.secondaryPapercut]}>
             <View style={styles.buttonWrapper}>
@@ -362,14 +362,14 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
             </View>
           </View>
           
-          {/* Estampilla reposicionada como decoración */}
+          
           <Image
             source={require('../assets/saloIMG/estampilla.png')}
             style={styles.stampOverlayRepositioned}
           />
         </View>
 
-        {/* Modal personalizado con fondo de imagen */}
+        
         <Modal
           animationType="fade"
           transparent={true}
@@ -398,7 +398,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
           </View>
         </Modal>
 
-        {/* Botón para cerrar sesión */}
+        
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
           <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
         </TouchableOpacity>
