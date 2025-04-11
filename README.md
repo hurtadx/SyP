@@ -13,7 +13,7 @@ Esta aplicación personal fue creada como un espacio digital compartido entre mi
 - Galería de momentos compartidos con fotos de nuestros recuerdos
 
 ## Capturas de Pantalla
-![Inicio de la aplicacion](./screenshots/Start.jpg)
+![Inicio de la aplicacion](./ScreenShots/Start.jpg)
 ![Boton de Besitos](./ScreenShots/Kisses.jpg)
 ![Mapa de Lugares](./ScreenShots/Map.jpg)
 ![Canciones Recuerdos](./ScreenShots/Music.jpg)
