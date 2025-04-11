@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Buffer } from 'buffer';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
+import { sendActivityNotification } from '../utils/notifications';
 
 const { width } = Dimensions.get('window');
 
@@ -160,6 +161,19 @@ export default function MusicScreen({ currentUser }) {
       
       if (data) {
         setSavedSongs([...data, ...savedSongs]);
+        
+        // Enviar notificación al otro usuario
+        const userName = currentUser === 'salo' ? 'Salo' : 'Tao';
+        await sendActivityNotification(
+          currentUser,
+          'new_song',
+          `¡${userName} añadió una nueva canción: "${selectedSong.name}"!`,
+          {
+            song_id: data[0].id,
+            song_title: selectedSong.name,
+            artist: selectedSong.artists.map(artist => artist.name).join(', ')
+          }
+        );
       }
       
       setModalVisible(false);
