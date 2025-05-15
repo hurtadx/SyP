@@ -15,7 +15,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "base64-arraybuffer": "^1.0.2",
     "d3-shape": "^3.2.0",
-    "expo": "~52.0.43",
+    "expo": "^53.0.9",
     "expo-font": "^13.0.4",
     "expo-image-manipulator": "^13.0.6",
     "expo-image-picker": "^16.0.6",
