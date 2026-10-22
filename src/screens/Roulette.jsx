@@ -20,7 +20,7 @@ import VerticalWheelOfFortune from '../components/VerticalWheelOfFortune';
 
 
 const { width } = Dimensions.get('window');
-const WHEEL_SIZE = width * 0.95; 
+const WHEEL_SIZE = Math.min(width - 90, 380);
 
 
 const PRESET_CATEGORIES = {
@@ -40,7 +40,7 @@ const PRESET_CATEGORIES = {
 };
 
 export default function RouletteScreen() {
-  const [options, setOptions] = useState(PRESET_CATEGORIES.comidas);
+  const [presetOptions, setPresetOptions] = useState(PRESET_CATEGORIES);
   const [newOption, setNewOption] = useState('');
   const [result, setResult] = useState('');
   const [currentCategory, setCurrentCategory] = useState('comidas');
@@ -78,13 +78,11 @@ export default function RouletteScreen() {
   }, []);
   
   
-  useEffect(() => {
-    if (currentCategory === 'personalizada') {
-      setOptions(customOptions.length > 0 ? customOptions : ['Añade opciones']);
-    } else {
-      setOptions(PRESET_CATEGORIES[currentCategory]);
-    }
-  }, [currentCategory, customOptions]);
+  const isCustom = currentCategory === 'personalizada';
+  const listItems = isCustom
+    ? customOptions
+    : presetOptions[currentCategory].map((text, index) => ({ id: `${currentCategory}-${index}`, option_text: text }));
+  const options = listItems.map(item => item.option_text);
 
   const starSpin = starRotation.interpolate({
     inputRange: [0, 1],
@@ -96,17 +94,15 @@ export default function RouletteScreen() {
     try {
       const { data, error } = await supabase
         .from('roulette_options')
-        .select('*');
+        .select('id, option_text')
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error al cargar opciones:', error);
         return;
       }
 
-      if (data && data.length > 0) {
-        const savedOptions = data.map(item => item.option_text);
-        setCustomOptions(savedOptions);
-      }
+      setCustomOptions(data || []);
     } catch (error) {
       console.error('Error al cargar opciones:', error);
     }
@@ -114,51 +110,48 @@ export default function RouletteScreen() {
 
   
   const addOption = async () => {
-    if (!newOption.trim()) return;
-    
-    if (currentCategory === 'personalizada') {
+    const text = newOption.trim();
+    if (!text) return;
+
+    if (isCustom) {
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('roulette_options')
-          .insert([{ option_text: newOption }]);
-        
+          .insert([{ option_text: text }])
+          .select('id, option_text');
+
         if (error) {
           console.error('Error al guardar opción:', error);
           return;
         }
-        
-        setCustomOptions([...customOptions, newOption]);
+
+        setCustomOptions([...customOptions, ...data]);
       } catch (error) {
         console.error('Error al guardar opción:', error);
         return;
       }
     } else {
-      setOptions([...options, newOption]);
+      setPresetOptions({
+        ...presetOptions,
+        [currentCategory]: [...presetOptions[currentCategory], text],
+      });
     }
-    
+
     setNewOption('');
   };
 
-  
-  const deleteOption = async (optionToDelete) => {
+  const deleteOption = async (item) => {
     try {
-      
-      if (currentCategory !== 'personalizada') return;
-      
-      
+      if (!isCustom) return;
+
       const { error } = await supabase
         .from('roulette_options')
         .delete()
-        .eq('option_text', optionToDelete);
-      
+        .eq('id', item.id);
+
       if (error) throw error;
-      
-      
-      const updatedOptions = customOptions.filter(option => option !== optionToDelete);
-      setCustomOptions(updatedOptions);
-      
-      
-      setOptions(updatedOptions);
+
+      setCustomOptions(customOptions.filter(option => option.id !== item.id));
     } catch (error) {
       console.error('Error al eliminar opción:', error);
     }
@@ -248,6 +241,7 @@ export default function RouletteScreen() {
                 <VerticalWheelOfFortune
                   options={options}
                   colors={options.map((_, index) => getColorForIndex(index))}
+                  size={WHEEL_SIZE}
                   onFinish={handleSpinResult}
                 />
               ) : (
@@ -296,22 +290,26 @@ export default function RouletteScreen() {
               />
             </View>
             
-            <ScrollView 
+            <ScrollView
               style={styles.optionsList}
               contentContainerStyle={styles.optionsListContent}
+              nestedScrollEnabled
             >
-              {options.map((option, index) => (
-                <View key={index} style={styles.optionItem}>
+              {listItems.length === 0 && (
+                <Text style={styles.emptyListText}>Aún no hay opciones. ¡Agrega la primera!</Text>
+              )}
+              {listItems.map((item, index) => (
+                <View key={item.id} style={styles.optionItem}>
                   <View style={[
-                    styles.optionColorIndicator, 
+                    styles.optionColorIndicator,
                     { backgroundColor: getColorForIndex(index) }
                   ]} />
-                  <Text style={styles.optionText}>{option}</Text>
-                  
-                  {currentCategory === 'personalizada' && (
-                    <TouchableOpacity 
+                  <Text style={styles.optionText}>{item.option_text}</Text>
+
+                  {isCustom && (
+                    <TouchableOpacity
                       style={styles.deleteOptionButton}
-                      onPress={() => deleteOption(option)}
+                      onPress={() => deleteOption(item)}
                     >
                       <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
                     </TouchableOpacity>
@@ -513,8 +511,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '10deg' }],
   },
   wheelOuterContainer: {
-    width: WHEEL_SIZE,
-    height: WHEEL_SIZE + 70, 
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
@@ -658,12 +655,19 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   optionText: {
+    flex: 1,
     fontSize: 15,
     color: '#333',
   },
+  emptyListText: {
+    fontSize: 14,
+    color: '#777',
+    textAlign: 'center',
+    paddingVertical: 10,
+  },
   deleteOptionButton: {
     padding: 5,
-    marginLeft: 'auto', 
+    marginLeft: 8,
   },
   buttonIcon: {
     marginLeft: 5,

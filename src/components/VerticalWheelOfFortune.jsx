@@ -1,60 +1,52 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import Svg, { G, Path, Circle, Text as SvgText } from 'react-native-svg';
 import { appColors } from '../utils/colors';
 
-const VerticalWheelOfFortune = ({ options = [], colors = [], onFinish }) => {
-  const [spinning, setSpinning] = useState(false);
-  const [winner, setWinner] = useState(null);
-  const spinValue = useRef(new Animated.Value(0)).current;
+const MAX_LABEL_LENGTH = 12;
 
-  
-  const wheelOptions = options.length > 0 ? options : [
-    'Pizza', 'Hambur.', 'Sushi', 'Tacos', 'Pasta',
-    'Pollo', 'China', 'Parrilla', 'Ensalada', 'Helado'
-  ];
-  
-  
+const shortenLabel = (label) =>
+  label.length > MAX_LABEL_LENGTH ? `${label.slice(0, MAX_LABEL_LENGTH - 1)}…` : label;
+
+const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinish }) => {
+  const [spinning, setSpinning] = useState(false);
+  const spinValue = useRef(new Animated.Value(0)).current;
+  const totalRotation = useRef(0);
+
+  const wheelOptions = options;
+
   const wheelColors = colors.length > 0 ? colors : [
-    "#FF5252", "#FF7752", "#FFB752", "#FFE652", 
+    "#FF5252", "#FF7752", "#FFB752", "#FFE652",
     "#B4FF52", "#52FF9A", "#52FFFF", "#5286FF",
     "#A952FF", "#FF52B4"
   ];
 
-  const windowWidth = Dimensions.get('window').width;
-  const size = windowWidth * 0.85; 
   const centerX = size / 2;
   const centerY = size / 2;
-  const wheelRadius = size * 0.42; 
+  const wheelRadius = size * 0.47;
+  const fontSize = wheelOptions.length > 12 ? 10 : wheelOptions.length > 8 ? 12 : 14;
 
   const spinWheel = () => {
-    if (spinning) return;
-    
-    setWinner(null);
+    if (spinning || wheelOptions.length < 2) return;
+
     setSpinning(true);
-    
-    
-    const randomSpin = 1440 + Math.floor(Math.random() * 1440);
-    
+
+    totalRotation.current += 1440 + Math.floor(Math.random() * 1440);
+
     Animated.timing(spinValue, {
-      toValue: randomSpin / 360,
-      duration: 3000, 
+      toValue: totalRotation.current / 360,
+      duration: 3000,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true
     }).start(() => {
-      
-      const degrees = randomSpin % 360;
+      const degrees = totalRotation.current % 360;
       const optionIndex = Math.floor((360 - degrees) / (360 / wheelOptions.length));
-      
-      const winnerText = wheelOptions[optionIndex % wheelOptions.length] === 'Hambur.' ? 
-        'Hamburguesa' : wheelOptions[optionIndex % wheelOptions.length];
-      
-      setWinner(winnerText);
-      
+      const winnerText = wheelOptions[optionIndex % wheelOptions.length];
+
       if (onFinish) {
         onFinish(winnerText);
       }
-      
+
       setSpinning(false);
     });
   };
@@ -66,22 +58,18 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], onFinish }) => {
 
   return (
     <View style={styles.containerOuter}>
-      
-      <View style={styles.wheelOuterContainer}>
-        
+      <View style={{ width: size, height: size }}>
         <View style={styles.markerRight}>
           <Svg height={20} width={30} viewBox="0 0 30 20">
-            <Path 
-              d="M 0,10 L 20,0 L 20,20 Z" 
-              fill="#FF3131" 
-              stroke="white" 
+            <Path
+              d="M 0,10 L 20,0 L 20,20 Z"
+              fill="#FF3131"
+              stroke="white"
               strokeWidth="1"
             />
           </Svg>
         </View>
-        
-        
-        <View style={styles.wheelContainer}>
+
           <Animated.View 
             style={{
               width: size,
@@ -127,16 +115,16 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], onFinish }) => {
                     >
                       <SvgText
                         x={centerX}
-                        y={centerY - wheelRadius * 0.7}
+                        y={centerY - wheelRadius * 0.6}
                         fill="white"
                         fontWeight="bold"
-                        fontSize={wheelOptions.length > 8 ? "11" : "13"}
+                        fontSize={fontSize}
                         textAnchor="middle"
                         rotation={90}
                         originX={centerX}
-                        originY={centerY - wheelRadius * 0.7}
+                        originY={centerY - wheelRadius * 0.6}
                       >
-                        {option}
+                        {shortenLabel(option)}
                       </SvgText>
                     </G>
                   </G>
@@ -144,10 +132,9 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], onFinish }) => {
               })}
             </Svg>
           </Animated.View>
-        </View>
       </View>
-      
-      
+
+
       <TouchableOpacity 
         style={[styles.button, spinning && styles.buttonDisabled]} 
         onPress={spinWheel}
@@ -164,37 +151,15 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], onFinish }) => {
 const styles = StyleSheet.create({
   containerOuter: {
     alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
-    height: '100%', 
-    paddingVertical: 5,
-  },
-  wheelOuterContainer: {
-    position: 'relative',
-    width: '100%',
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  wheelContainer: {
-    width: '90%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wheel: {
-    width: '100%',
-    height: '100%',
-    
-    transformOrigin: 'center',
   },
   markerRight: {
     position: 'absolute',
-    right: 0,
+    right: -14,
     top: '50%',
     transform: [{translateY: -10}],
     zIndex: 10,
+    elevation: 10,
   },
   button: {
     backgroundColor: appColors.primary,
@@ -202,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 25,
     elevation: 3,
-    marginTop: 5,
+    marginTop: 15,
     marginBottom: 10,
     alignSelf: 'center', 
     shadowColor: '#000',
