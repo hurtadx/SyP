@@ -278,7 +278,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
       
       const now = new Date();
-      const isSpecialTime = now.getHours() === 7 && now.getMinutes() === 37;
+      const isSpecialTime = (now.getHours() === 7 || now.getHours() === 19) && now.getMinutes() === 37;
 
       
       const message = isSpecialTime
