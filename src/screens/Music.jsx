@@ -15,7 +15,6 @@ import {
   ImageBackground
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Buffer } from 'buffer';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
@@ -44,7 +43,6 @@ export default function MusicScreen({ currentUser }) {
   }, []);
 
   const getSpotifyToken = async () => {
-    setLoading(true);
     try {
       const response = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -56,12 +54,17 @@ export default function MusicScreen({ currentUser }) {
       });
 
       const data = await response.json();
+
+      if (!data.access_token) {
+        console.error('Spotify rechazó las credenciales:', data);
+        return null;
+      }
+
       setToken(data.access_token);
-      await AsyncStorage.setItem('spotify_token', data.access_token);
+      return data.access_token;
     } catch (error) {
       console.error('Error obteniendo token de Spotify:', error);
-    } finally {
-      setLoading(false);
+      return null;
     }
   };
 
@@ -92,41 +95,33 @@ export default function MusicScreen({ currentUser }) {
     setViewMode('search');
     
     try {
-      if (!token) {
-        await getSpotifyToken();
-      }
-      
-      const response = await fetch(
+      const search = (accessToken) => fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${accessToken}`
           }
         }
       );
-      
+
+      let accessToken = token || await getSpotifyToken();
+      let response = await search(accessToken);
+
       if (response.status === 401) {
-        
-        await getSpotifyToken();
-        
-        
-        const retryResponse = await fetch(
-          `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=20`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-        
-        const data = await retryResponse.json();
-        setSearchResults(data.tracks.items);
-      } else {
-        const data = await response.json();
-        setSearchResults(data.tracks.items);
+        accessToken = await getSpotifyToken();
+        response = await search(accessToken);
       }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || `HTTP ${response.status}`);
+      }
+
+      setSearchResults(data.tracks?.items || []);
     } catch (error) {
       console.error('Error buscando en Spotify:', error);
+      setSearchResults([]);
     } finally {
       setLoading(false);
     }
