@@ -34,6 +34,10 @@
     "web": {
       "favicon": "./src/assets/favicon.png"
     },
+    "runtimeVersion": "exposdk:58.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/4d22fcb5-c4f4-491d-8f2d-bfa1b0d82fe2"
+    },
     "extra": {
       "eas": {
         "projectId": "4d22fcb5-c4f4-491d-8f2d-bfa1b0d82fe2"
