@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Alert, Image, 
-  Animated, Easing, ImageBackground, Modal
+  Animated, Easing, ImageBackground, Modal, Platform
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,69 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+const DAILY_REMINDERS = [
+  {
+    id: 'reminder-am-prep',
+    hour: 7,
+    minute: 36,
+    channelId: 'reminders',
+    content: {
+      title: "¡Prepárate mi amor! 🌞",
+      body: "En un minuto es hora de nuestro besito de las 7:37 AM 💋",
+    },
+  },
+  {
+    id: 'reminder-am-kiss',
+    hour: 7,
+    minute: 37,
+    channelId: 'special-moments',
+    content: {
+      title: "✨ 7:37 AM - Momento Especial ✨",
+      body: "¡Es el momento perfecto para un besito! 💕 Piensa en tu amor...",
+      sound: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    },
+  },
+  {
+    id: 'reminder-pm-prep',
+    hour: 19,
+    minute: 36,
+    channelId: 'reminders',
+    content: {
+      title: "¡Prepárate mi amor! 🌙",
+      body: "En un minuto es hora de nuestro besito de las 7:37 PM 💋",
+    },
+  },
+  {
+    id: 'reminder-pm-kiss',
+    hour: 19,
+    minute: 37,
+    channelId: 'special-moments',
+    content: {
+      title: "✨ 7:37 PM - Momento Especial ✨",
+      body: "¡Es el momento perfecto para un besito! 💕 Piensa en tu amor...",
+      sound: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    },
+  },
+];
+
+// En Android 8+ las notificaciones a un canal que no existe se descartan sin aviso
+const setupNotificationChannels = async () => {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync('reminders', {
+    name: 'Recordatorios',
+    importance: Notifications.AndroidImportance.DEFAULT,
+  });
+  await Notifications.setNotificationChannelAsync('special-moments', {
+    name: 'Momentos especiales',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    sound: 'default',
+  });
+};
 
 export default function HomeScreen({ currentUser, setCurrentUser }) {
   const [currentTime, setCurrentTime] = useState('');
@@ -103,32 +166,35 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const checkUserSettings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('reminders_active')
-          .eq('user_id', currentUser)
-          .single();
-        
-        if (!error && data) {
-          setRemindersActive(data.reminders_active);
-        }
-      } catch (error) {
-        console.error('Error al comprobar configuración de usuario:', error);
-      }
-    };
-    
-    checkUserSettings();
-  }, [currentUser]);
-
+  // Los recordatorios viven en el teléfono, así que lo programado localmente es la fuente de verdad
   const checkExistingNotifications = async () => {
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-    setRemindersActive(scheduledNotifications.length > 0);
+    const reminderIds = DAILY_REMINDERS.map(r => r.id);
+    setRemindersActive(scheduledNotifications.some(n => reminderIds.includes(n.identifier)));
+  };
+
+  const cancelReminders = async () => {
+    for (const reminder of DAILY_REMINDERS) {
+      await Notifications.cancelScheduledNotificationAsync(reminder.id);
+    }
+  };
+
+  const saveRemindersSetting = async (active) => {
+    const { error } = await supabase.from('user_settings')
+      .upsert([{
+        user_id: currentUser,
+        reminders_active: active,
+        updated_at: new Date().toISOString()
+      }]);
+
+    if (error) {
+      console.error('Error guardando configuración de recordatorios:', error);
+    }
   };
 
   const registerForPushNotificationsAsync = async () => {
+    await setupNotificationChannels();
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -155,113 +221,25 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
   const scheduleDailyReminders = async () => {
     try {
-      
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      
+      await cancelReminders();
+      await setupNotificationChannels();
+
+      for (const reminder of DAILY_REMINDERS) {
+        await Notifications.scheduleNotificationAsync({
+          identifier: reminder.id,
+          content: reminder.content,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: reminder.hour,
+            minute: reminder.minute,
+            channelId: reminder.channelId,
+          },
+        });
+      }
+
       setRemindersActive(true);
-      
-      
-      const morningPrepTriggerDate = new Date();
-      morningPrepTriggerDate.setHours(7);
-      morningPrepTriggerDate.setMinutes(36);
-      morningPrepTriggerDate.setSeconds(0);
-      
-      if (morningPrepTriggerDate <= new Date()) {
-        morningPrepTriggerDate.setDate(morningPrepTriggerDate.getDate() + 1);
-      }
-  
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "¡Prepárate mi amor! 🌞",
-          body: "En un minuto es hora de nuestro besito de las 7:37 AM 💋",
-        },
-        trigger: {
-          channelId: 'reminders',
-          date: morningPrepTriggerDate,
-          repeats: true,
-        },
-      });
-      
-      
-      const morningKissTriggerDate = new Date();
-      morningKissTriggerDate.setHours(7);
-      morningKissTriggerDate.setMinutes(37);
-      morningKissTriggerDate.setSeconds(0);
-      
-      if (morningKissTriggerDate <= new Date()) {
-        morningKissTriggerDate.setDate(morningKissTriggerDate.getDate() + 1);
-      }
-  
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "✨ 7:37 AM - Momento Especial ✨",
-          body: "¡Es el momento perfecto para un besito! 💕 Piensa en tu amor...",
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-          vibrate: [0, 250, 250, 250]
-        },
-        trigger: {
-          channelId: 'special-moments',
-          date: morningKissTriggerDate,
-          repeats: true,
-        },
-      });
-      
-      
-      const eveningPrepTriggerDate = new Date();
-      eveningPrepTriggerDate.setHours(19);
-      eveningPrepTriggerDate.setMinutes(36);
-      eveningPrepTriggerDate.setSeconds(0);
-      
-      if (eveningPrepTriggerDate <= new Date()) {
-        eveningPrepTriggerDate.setDate(eveningPrepTriggerDate.getDate() + 1);
-      }
-      
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "¡Prepárate mi amor! 🌙",
-          body: "En un minuto es hora de nuestro besito de las 7:37 PM 💋",
-        },
-        trigger: {
-          channelId: 'reminders',
-          date: eveningPrepTriggerDate,
-          repeats: true,
-        },
-      });
-      
-      
-      const eveningKissTriggerDate = new Date();
-      eveningKissTriggerDate.setHours(19);
-      eveningKissTriggerDate.setMinutes(37);
-      eveningKissTriggerDate.setSeconds(0);
-      
-      if (eveningKissTriggerDate <= new Date()) {
-        eveningKissTriggerDate.setDate(eveningKissTriggerDate.getDate() + 1);
-      }
-  
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "✨ 7:37 PM - Momento Especial ✨",
-          body: "¡Es el momento perfecto para un besito! 💕 Piensa en tu amor...",
-          sound: true, 
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-          vibrate: [0, 250, 250, 250]
-        },
-        trigger: {
-          channelId: 'special-moments',
-          date: eveningKissTriggerDate,
-          repeats: true,
-        },
-      });
-      
-      
-      await supabase.from('user_settings')
-        .upsert([{
-          user_id: currentUser,
-          reminders_active: true,
-          updated_at: new Date().toISOString()
-        }]);
-  
+      await saveRemindersSetting(true);
+
       showCustomModal(
         "Recordatorios activados",
         "Recibirás notificaciones especiales a las 7:36 y 7:37 AM/PM para tus momentos especiales.",
@@ -281,8 +259,9 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
   const disableReminders = async () => {
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await cancelReminders();
       setRemindersActive(false);
+      await saveRemindersSetting(false);
       showCustomModal(
         "Recordatorios desactivados",
         "Ya no recibirás notificaciones diarias.",
