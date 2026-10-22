@@ -64,7 +64,6 @@ const DAILY_REMINDERS = [
   },
 ];
 
-// En Android 8+ las notificaciones a un canal que no existe se descartan sin aviso
 const setupNotificationChannels = async () => {
   if (Platform.OS !== 'android') return;
 
@@ -166,7 +165,6 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Los recordatorios viven en el teléfono, así que lo programado localmente es la fuente de verdad
   const checkExistingNotifications = async () => {
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
     const reminderIds = DAILY_REMINDERS.map(r => r.id);

@@ -1,8 +1,3 @@
--- Sal y Pimienta - esquema de Supabase
--- Pegar completo en: Supabase Dashboard > SQL Editor > New query > Run
--- Se puede ejecutar en un proyecto nuevo para recrear toda la base de datos.
-
--- Notificaciones entre salo y tao (besitos, canciones, fotos, lugares)
 create table if not exists notifications (
   id bigint generated always as identity primary key,
   from_user text not null,
@@ -14,14 +9,12 @@ create table if not exists notifications (
   created_at timestamptz default now()
 );
 
--- Configuración por usuario (la app hace upsert por user_id)
 create table if not exists user_settings (
   user_id text primary key,
   reminders_active boolean default false,
   updated_at timestamptz default now()
 );
 
--- Canciones con recuerdos (pantalla Música)
 create table if not exists memories (
   id bigint generated always as identity primary key,
   song_id text,
@@ -35,7 +28,6 @@ create table if not exists memories (
   created_at timestamptz default now()
 );
 
--- Lugares especiales (pantalla Mapa)
 create table if not exists markers (
   id bigint generated always as identity primary key,
   latitude double precision not null,
@@ -45,7 +37,6 @@ create table if not exists markers (
   created_by text
 );
 
--- Fotos (pantalla Galería)
 create table if not exists photos (
   id bigint generated always as identity primary key,
   image_url text not null,
@@ -54,15 +45,12 @@ create table if not exists photos (
   created_at timestamptz default now()
 );
 
--- Opciones personalizadas de la ruleta
 create table if not exists roulette_options (
   id bigint generated always as identity primary key,
   option_text text not null,
   created_at timestamptz default now()
 );
 
--- Seguridad: la app no tiene login, así que el rol anon necesita acceso completo.
--- Cualquiera con la anon key puede leer/escribir, por eso config.js nunca se sube a git.
 do $$
 declare t text;
 begin
@@ -73,7 +61,6 @@ begin
   end loop;
 end $$;
 
--- Storage: bucket público para las fotos (la app usa getPublicUrl)
 insert into storage.buckets (id, name, public)
 values ('photo_gallery', 'photo_gallery', true)
 on conflict (id) do nothing;
