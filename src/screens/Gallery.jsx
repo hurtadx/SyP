@@ -20,9 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../utils/supabase';
 import { appColors } from '../utils/colors';
-import { PinchGestureHandler } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring
@@ -225,17 +224,18 @@ export default function GalleryScreen({ currentUser }) {
   };
 
   
-  const pinchHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx) => {
-      ctx.startScale = scale.value;
-    },
-    onActive: (event, ctx) => {
-      scale.value = ctx.startScale * event.scale;
-    },
-    onEnd: () => {
+  const startScale = useSharedValue(1);
+
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      startScale.value = scale.value;
+    })
+    .onUpdate((event) => {
+      scale.value = startScale.value * event.scale;
+    })
+    .onEnd(() => {
       scale.value = withSpring(1, { stiffness: 100, damping: 10 });
-    },
-  });
+    });
 
   
   const animatedImageStyle = useAnimatedStyle(() => {
@@ -448,13 +448,13 @@ export default function GalleryScreen({ currentUser }) {
                     </TouchableOpacity>
                   </View>
                   
-                  <PinchGestureHandler onGestureEvent={pinchHandler}>
+                  <GestureDetector gesture={pinchGesture}>
                     <Animated.Image
                       source={{ uri: viewImage.image_url }}
                       style={[styles.detailImage, animatedImageStyle]}
                       resizeMode="contain"
                     />
-                  </PinchGestureHandler>
+                  </GestureDetector>
                   
                   <View style={styles.detailModalFooter}>
                     <View style={styles.detailModalCreator}>
