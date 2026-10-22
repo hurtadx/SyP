@@ -39,12 +39,19 @@ const PRESET_CATEGORIES = {
   personalizada: []
 };
 
+const CATEGORY_ITEMS = [
+  { key: 'comidas', label: 'Comidas', icon: 'restaurant' },
+  { key: 'actividades', label: 'Actividades', icon: 'game-controller' },
+  { key: 'lugares', label: 'Lugares', icon: 'map' },
+  { key: 'personalizada', label: 'Mi lista personalizada', icon: 'create' },
+];
+
 export default function RouletteScreen() {
   const [presetOptions, setPresetOptions] = useState(PRESET_CATEGORIES);
   const [newOption, setNewOption] = useState('');
   const [result, setResult] = useState('');
   const [currentCategory, setCurrentCategory] = useState('comidas');
-  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
   const [customOptions, setCustomOptions] = useState([]);
   const [resultModalVisible, setResultModalVisible] = useState(false);
   
@@ -160,7 +167,7 @@ export default function RouletteScreen() {
   
   const switchCategory = (category) => {
     setCurrentCategory(category);
-    setCategoryModalVisible(false);
+    setCategoryMenuVisible(false);
     setResult('');
   };
 
@@ -221,15 +228,36 @@ export default function RouletteScreen() {
           
           <TouchableOpacity 
             style={styles.categoryButton}
-            onPress={() => setCategoryModalVisible(true)}
+            onPress={() => setCategoryMenuVisible(!categoryMenuVisible)}
           >
             <Ionicons name="list" size={22} color={appColors.primary} style={styles.buttonIcon} />
             <Text style={styles.categoryButtonText}>
               {getCategoryName(currentCategory)}
             </Text>
-            <Ionicons name="chevron-down" size={22} color="#777" />
+            <Ionicons name={categoryMenuVisible ? "chevron-up" : "chevron-down"} size={22} color="#777" />
           </TouchableOpacity>
-          
+
+          {categoryMenuVisible && (
+            <View style={styles.categoryMenu}>
+              {CATEGORY_ITEMS.map(({ key, label, icon }) => {
+                const isActive = currentCategory === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.categoryItem, isActive && styles.activeCategoryItem]}
+                    onPress={() => switchCategory(key)}
+                  >
+                    <Ionicons name={icon} size={20} color={isActive ? appColors.primary : "#666"} />
+                    <Text style={[styles.categoryItemText, isActive && styles.activeCategoryItemText]}>
+                      {label}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={20} color={appColors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
           
           <View style={styles.wheelOuterWrapper}>
             <Image 
@@ -319,59 +347,6 @@ export default function RouletteScreen() {
             </ScrollView>
           </View>
 
-          
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={categoryModalVisible}
-            onRequestClose={() => setCategoryModalVisible(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContainer}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Elige una categoría</Text>
-                  <TouchableOpacity onPress={() => setCategoryModalVisible(false)}>
-                    <Ionicons name="close-circle" size={28} color="#999" />
-                  </TouchableOpacity>
-                </View>
-                
-                <ScrollView style={styles.categoryList}>
-                  <TouchableOpacity 
-                    style={[styles.categoryItem, currentCategory === 'comidas' && styles.activeCategoryItem]} 
-                    onPress={() => switchCategory('comidas')}
-                  >
-                    <Ionicons name="restaurant" size={22} color={currentCategory === 'comidas' ? appColors.primary : "#666"} />
-                    <Text style={styles.categoryItemText}>Comidas</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.categoryItem, currentCategory === 'actividades' && styles.activeCategoryItem]} 
-                    onPress={() => switchCategory('actividades')}
-                  >
-                    <Ionicons name="game-controller" size={22} color={currentCategory === 'actividades' ? appColors.primary : "#666"} />
-                    <Text style={styles.categoryItemText}>Actividades</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.categoryItem, currentCategory === 'lugares' && styles.activeCategoryItem]} 
-                    onPress={() => switchCategory('lugares')}
-                  >
-                    <Ionicons name="map" size={22} color={currentCategory === 'lugares' ? appColors.primary : "#666"} />
-                    <Text style={styles.categoryItemText}>Lugares</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.categoryItem, currentCategory === 'personalizada' && styles.activeCategoryItem]} 
-                    onPress={() => switchCategory('personalizada')}
-                  >
-                    <Ionicons name="create" size={22} color={currentCategory === 'personalizada' ? appColors.primary : "#666"} />
-                    <Text style={styles.categoryItemText}>Mi lista personalizada</Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </View>
-          </Modal>
-          
           
           <Modal
             animationType="fade"
@@ -533,6 +508,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '0.3deg' }],
   },
   categoryButton: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
@@ -553,6 +529,40 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 26,
     transform: [{ rotate: '-0.4deg' }],
+  },
+  categoryMenu: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginTop: -5,
+    marginBottom: 10,
+    paddingVertical: 5,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+  },
+  activeCategoryItem: {
+    backgroundColor: appColors.lightBg,
+  },
+  categoryItemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
+  },
+  activeCategoryItemText: {
+    fontWeight: 'bold',
+    color: appColors.primary,
   },
   categoryButtonText: {
     flex: 1,
