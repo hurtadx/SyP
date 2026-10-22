@@ -20,6 +20,7 @@ import { Buffer } from 'buffer';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
 import { sendActivityNotification } from '../utils/notifications';
+import { SPOTIFY_CLIENT_ID as CLIENT_ID, SPOTIFY_CLIENT_SECRET as CLIENT_SECRET } from '../utils/config';
 
 const { width } = Dimensions.get('window');
 
@@ -35,10 +36,6 @@ export default function MusicScreen({ currentUser }) {
   const [viewMode, setViewMode] = useState('saved'); 
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedSavedSong, setSelectedSavedSong] = useState(null);
-
-  
-  const CLIENT_ID = '56677b28071346778f24fa4ee0752ca4';
-  const CLIENT_SECRET = 'f54e15b52aa540f6aa04648b7ddd6422';
 
   
   useEffect(() => {
