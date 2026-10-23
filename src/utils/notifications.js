@@ -1,5 +1,51 @@
 import { supabase } from './supabase';
 
+const TITLES = {
+  kiss: (data) => (data.special ? 'Besito besito ♡' : 'Un besito para ti ♡'),
+  new_song: () => 'Nueva canción ♪',
+  new_photo: () => 'Nueva foto ✦',
+  new_place: () => 'Nuevo lugar ✦',
+};
+
+export const notificationTitle = (type, data = {}) =>
+  TITLES[type] ? TITLES[type](data) : 'Nueva notificación';
+
+export const savePushToken = async (currentUser, token) => {
+  const { error } = await supabase.from('user_settings')
+    .upsert({ user_id: currentUser, push_token: token, updated_at: new Date().toISOString() });
+  if (error) console.error('Error guardando push token:', error);
+};
+
+const sendPush = async (toUser, title, body, data, channelId) => {
+  try {
+    const { data: settings } = await supabase.from('user_settings')
+      .select('push_token')
+      .eq('user_id', toUser)
+      .maybeSingle();
+
+    if (!settings?.push_token) return false;
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        to: settings.push_token,
+        title,
+        body,
+        data,
+        sound: 'default',
+        priority: 'high',
+        channelId,
+      }),
+    });
+    const result = await response.json();
+    return result?.data?.status === 'ok';
+  } catch (error) {
+    console.error('Error enviando push:', error);
+    return false;
+  }
+};
+
 /**
  * Envía una notificación al otro usuario cuando se realiza alguna acción
  * @param {string} currentUser - Usuario actual (salo o tao)
@@ -10,14 +56,16 @@ import { supabase } from './supabase';
 export const sendActivityNotification = async (currentUser, type, message, data = {}) => {
   try {
     const otherUser = currentUser === 'salo' ? 'tao' : 'salo';
-    
+    const channelId = type === 'kiss' ? 'special-moments' : 'reminders';
+    const pushed = await sendPush(otherUser, notificationTitle(type, data), message, data, channelId);
+
     const { error } = await supabase.from('notifications')
       .insert([{
         from_user: currentUser,
         to_user: otherUser,
         type: type,
         message: message,
-        data: data,
+        data: { ...data, pushed },
         seen: false,
         created_at: new Date().toISOString()
       }]);

@@ -7,7 +7,10 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
-import { getAndMarkNotifications } from '../utils/notifications';
+import {
+  getAndMarkNotifications, notificationTitle, savePushToken, sendActivityNotification
+} from '../utils/notifications';
+import appConfig from '../../app.json';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -21,7 +24,6 @@ Notifications.setNotificationHandler({
 const HEART = '♡';
 const SUN = '☀︎';
 const MOON = '☾';
-const NOTE = '♪';
 const SPARKLE = '✦';
 
 const displayName = (user) => (user === 'salo' ? 'Salo' : 'Tao');
@@ -251,6 +253,15 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       alert('¡Necesitas permitir notificaciones para recibir recordatorios!');
       return;
     }
+
+    try {
+      const { data: token } = await Notifications.getExpoPushTokenAsync({
+        projectId: appConfig.expo.extra.eas.projectId,
+      });
+      await savePushToken(currentUser, token);
+    } catch (error) {
+      console.log('Push no disponible en este dispositivo:', error.message);
+    }
   };
 
   
@@ -353,19 +364,8 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
         : `${displayName(currentUser)} pensó en ti y te ha mandado un besito`;
 
 
-      const { error } = await supabase.from('notifications').insert([
-        {
-          from_user: currentUser,
-          to_user: otherUser,
-          type: 'kiss',
-          message: message,
-          data: { special: isSpecialTime },
-          seen: false,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-      if (error) throw error;
+      const sent = await sendActivityNotification(currentUser, 'kiss', message, { special: isSpecialTime });
+      if (!sent) throw new Error('No se guardó el besito');
 
       loadKissesToday();
 
@@ -384,7 +384,8 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
     const checkNotifications = async () => {
       try {
         
-        const notifications = await getAndMarkNotifications(currentUser);
+        const notifications = (await getAndMarkNotifications(currentUser))
+          .filter(n => !n.data?.pushed);
         const kisses = notifications.filter(n => n.type === 'kiss');
         const others = notifications.filter(n => n.type !== 'kiss');
 
@@ -403,35 +404,10 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
         }
 
         for (const notification of others) {
-          let title, body;
-
-          switch (notification.type) {
-            case 'kiss':
-              title = notification.data?.special ? `Besito besito ${HEART}` : `Un besito para ti ${HEART}`;
-              body = notification.message;
-              break;
-            case 'new_song':
-              title = `Nueva canción ${NOTE}`;
-              body = notification.message;
-              break;
-            case 'new_photo':
-              title = `Nueva foto ${SPARKLE}`;
-              body = notification.message;
-              break;
-            case 'new_place':
-              title = `Nuevo lugar ${SPARKLE}`;
-              body = notification.message;
-              break;
-            default:
-              title = "Nueva notificación";
-              body = notification.message;
-          }
-
-          
           await Notifications.scheduleNotificationAsync({
             content: {
-              title,
-              body,
+              title: notificationTitle(notification.type, notification.data || {}),
+              body: notification.message,
               data: notification.data || {},
             },
             trigger: null,

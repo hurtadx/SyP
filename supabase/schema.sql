@@ -69,3 +69,5 @@ drop policy if exists "gallery_anon_all" on storage.objects;
 create policy "gallery_anon_all" on storage.objects for all to anon
   using (bucket_id = 'photo_gallery')
   with check (bucket_id = 'photo_gallery');
+
+alter table user_settings add column if not exists push_token text;
