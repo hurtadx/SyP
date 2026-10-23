@@ -301,6 +301,17 @@ export default function GalleryScreen({ currentUser }) {
       scale.value = withSpring(1, { stiffness: 100, damping: 10 });
     });
 
+  const dismissOverlays = () => {
+    Keyboard.dismiss();
+    setPhotoMenuVisible(false);
+  };
+
+  const tapGesture = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd(dismissOverlays);
+
+  const photoGesture = Gesture.Simultaneous(pinchGesture, tapGesture);
+
   
   const animatedImageStyle = useAnimatedStyle(() => {
     return {
@@ -516,6 +527,7 @@ export default function GalleryScreen({ currentUser }) {
                 { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }
               ]}
             >
+              <Pressable style={StyleSheet.absoluteFill} onPress={dismissOverlays} />
               {viewImage && (
                 <>
                   <View style={styles.detailModalHeader}>
@@ -556,7 +568,7 @@ export default function GalleryScreen({ currentUser }) {
                     </View>
                   )}
 
-                  <GestureDetector gesture={pinchGesture}>
+                  <GestureDetector gesture={photoGesture}>
                     <Animated.Image
                       source={{ uri: viewImage.image_url }}
                       style={[styles.detailImage, animatedImageStyle]}
