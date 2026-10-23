@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, TextInput, Modal, FlatList, ScrollView, Linking } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, TextInput, Modal, FlatList, ScrollView, Linking, Image } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -199,9 +199,19 @@ export default function MapScreen({ currentUser }) {
               latitude: marker.latitude,
               longitude: marker.longitude,
             }}
-            pinColor={marker.created_by === 'salo' ? '#F08A8A' : '#7C8FD6'}
             onCalloutPress={() => showMarkerDetail(marker)}
           >
+            <View style={[
+              styles.facePin,
+              { borderColor: marker.created_by === 'salo' ? '#F08A8A' : '#7C8FD6' }
+            ]}>
+              <Image
+                source={marker.created_by === 'salo'
+                  ? require('../assets/Icons/sol-pin.png')
+                  : require('../assets/Icons/tao-pin.png')}
+                style={styles.facePinImage}
+              />
+            </View>
             <Callout tooltip={true}>
               <View style={styles.calloutContainer}>
                 <Text style={styles.calloutTitle}>
@@ -391,6 +401,24 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  facePin: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 3,
+    backgroundColor: '#FFF8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  facePinImage: {
+    width: 36,
+    height: 36,
   },
   addButton: {
     position: 'absolute',
