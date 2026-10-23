@@ -13,14 +13,18 @@ import {
   Dimensions,
   ScrollView,
   Alert,
-  Platform
+  Platform,
+  Keyboard,
+  KeyboardAvoidingView,
+  Pressable
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../utils/supabase';
 import { appColors } from '../utils/colors';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -40,7 +44,15 @@ export default function GalleryScreen({ currentUser }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [viewImage, setViewImage] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [filterUser, setFilterUser] = useState('all'); 
+  const [filterUser, setFilterUser] = useState('all');
+  const insets = useSafeAreaInsets();
+
+  const closeUploadModal = () => {
+    Keyboard.dismiss();
+    setModalVisible(false);
+    setSelectedImage(null);
+    setCaption('');
+  };
 
   
   const scale = useSharedValue(1);
@@ -246,7 +258,7 @@ export default function GalleryScreen({ currentUser }) {
 
   
   const renderItem = ({ item }) => {
-    const isSalo = item.created_by === 'salo';
+    const isSalo = item.uploaded_by === 'salo';
     
     return (
       <TouchableOpacity 
@@ -371,22 +383,30 @@ export default function GalleryScreen({ currentUser }) {
           animationType="fade"
           transparent={true}
           visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(false);
-            setSelectedImage(null);
-            setCaption('');
-          }}
+          statusBarTranslucent
+          onRequestClose={closeUploadModal}
         >
-          <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
             <ImageBackground
               source={require('../assets/Label.jpg')}
               style={styles.modalBackground}
               imageStyle={styles.modalBackgroundImage}
             >
-              <View style={styles.modalContainer}>
+              <ScrollView
+                contentContainerStyle={styles.modalContainer}
+                keyboardShouldPersistTaps="handled"
+                bounces={false}
+              >
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Añadir a la Galería</Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <TouchableOpacity
+                    onPress={closeUploadModal}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
                     <Ionicons name="close-circle" size={28} color="#999" />
                   </TouchableOpacity>
                 </View>
@@ -423,9 +443,9 @@ export default function GalleryScreen({ currentUser }) {
                     </>
                   )}
                 </TouchableOpacity>
-              </View>
+              </ScrollView>
             </ImageBackground>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
         
         {}
@@ -433,17 +453,26 @@ export default function GalleryScreen({ currentUser }) {
           animationType="fade"
           transparent={true}
           visible={detailModalVisible}
+          statusBarTranslucent
           onRequestClose={() => setDetailModalVisible(false)}
         >
-          <View style={styles.detailModalOverlay}>
-            <View style={styles.detailModalContainer}>
+          <GestureHandlerRootView style={styles.detailModalOverlay}>
+            <View
+              style={[
+                styles.detailModalContainer,
+                { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }
+              ]}
+            >
               {viewImage && (
                 <>
                   <View style={styles.detailModalHeader}>
                     <Text style={styles.detailModalTitle}>
                       {new Date(viewImage.created_at).toLocaleDateString()}
                     </Text>
-                    <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
+                    <TouchableOpacity
+                      onPress={() => setDetailModalVisible(false)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
                       <Ionicons name="close" size={28} color="#fff" />
                     </TouchableOpacity>
                   </View>
@@ -460,14 +489,14 @@ export default function GalleryScreen({ currentUser }) {
                     <View style={styles.detailModalCreator}>
                       <Image
                         source={
-                          viewImage.created_by === 'salo' 
+                          viewImage.uploaded_by === 'salo' 
                             ? require('../assets/Icons/Sol.png')
                             : require('../assets/Icons/Tao.png')
                         }
                         style={styles.detailCreatorIcon}
                       />
                       <Text style={styles.detailCreatorText}>
-                        Subido por {viewImage.created_by === 'salo' ? 'Salo' : 'Tao'}
+                        Subido por {viewImage.uploaded_by === 'salo' ? 'Salo' : 'Tao'}
                       </Text>
                     </View>
                     
@@ -475,7 +504,7 @@ export default function GalleryScreen({ currentUser }) {
                       <Text style={styles.detailCaptionText}>{viewImage.caption}</Text>
                     )}
                     
-                    {viewImage.created_by === currentUser && (
+                    {viewImage.uploaded_by === currentUser && (
                       <TouchableOpacity
                         style={styles.deleteButton}
                         onPress={() => {
@@ -497,7 +526,7 @@ export default function GalleryScreen({ currentUser }) {
                 </>
               )}
             </View>
-          </View>
+          </GestureHandlerRootView>
         </Modal>
       </View>
     </ImageBackground>
@@ -676,6 +705,7 @@ const styles = StyleSheet.create({
   modalBackground: {
     width: width * 0.9,
     maxWidth: 400,
+    maxHeight: '85%',
     overflow: 'hidden',
     borderRadius: 20,
   },
