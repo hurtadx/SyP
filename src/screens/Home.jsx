@@ -26,6 +26,22 @@ const SPARKLE = '✦';
 
 const displayName = (user) => (user === 'salo' ? 'Salo' : 'Tao');
 
+const MAX_KISS_TIMES = 6;
+
+const startOfToday = () => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const formatKissTime = (iso) => {
+  const date = new Date(iso);
+  const hours = date.getHours() % 12 || 12;
+  return `${hours}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
+const besitos = (count) => `${count} ${count === 1 ? 'besito' : 'besitos'}`;
+
 const DAILY_REMINDERS = [
   { id: 'reminder-am-prep', hour: 7, minute: 36, channelId: 'reminders', kind: 'prep', icon: SUN },
   { id: 'reminder-am-kiss', hour: 7, minute: 37, channelId: 'special-moments', kind: 'kiss' },
@@ -68,6 +84,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
   const [currentTime, setCurrentTime] = useState('');
   const [currentAmPm, setCurrentAmPm] = useState('');
   const [remindersActive, setRemindersActive] = useState(false);
+  const [kissesToday, setKissesToday] = useState({ received: [], sentCount: 0 });
   
   
   const [modalVisible, setModalVisible] = useState(false);
@@ -301,6 +318,27 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
     }
   };
 
+  const loadKissesToday = async () => {
+    if (!currentUser) return;
+    try {
+      const { data, error } = await supabase.from('notifications')
+        .select('from_user, created_at, data')
+        .eq('type', 'kiss')
+        .or(`from_user.eq.${currentUser},to_user.eq.${currentUser}`)
+        .gte('created_at', startOfToday().toISOString())
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      setKissesToday({
+        received: data.filter(k => k.from_user !== currentUser),
+        sentCount: data.filter(k => k.from_user === currentUser).length,
+      });
+    } catch (error) {
+      console.error('Error cargando besitos de hoy:', error);
+    }
+  };
+
   const sendKissNotification = async () => {
     try {
       const otherUser = currentUser === 'salo' ? 'tao' : 'salo';
@@ -329,7 +367,8 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
       if (error) throw error;
 
-      
+      loadKissesToday();
+
       showCustomModal(
         "Besito enviado",
         `${displayName(otherUser)} recibirá tu besito ${HEART}`,
@@ -346,9 +385,24 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       try {
         
         const notifications = await getAndMarkNotifications(currentUser);
+        const kisses = notifications.filter(n => n.type === 'kiss');
+        const others = notifications.filter(n => n.type !== 'kiss');
 
-        
-        for (const notification of notifications) {
+        if (kisses.length > 1) {
+          const special = kisses.some(k => k.data?.special);
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: special ? `Besito besito ${HEART}` : `Besitos para ti ${HEART}`,
+              body: `${displayName(kisses[0].from_user)} te ha mandado ${besitos(kisses.length)}`,
+              data: { special },
+            },
+            trigger: null,
+          });
+        } else {
+          others.unshift(...kisses);
+        }
+
+        for (const notification of others) {
           let title, body;
 
           switch (notification.type) {
@@ -383,6 +437,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
             trigger: null,
           });
         }
+        loadKissesToday();
       } catch (error) {
         console.error('Error verificando notificaciones:', error);
       }
@@ -467,7 +522,26 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
           </View>
         </View>
 
-        
+        <View style={styles.kissCounter}>
+          <Text style={styles.kissCounterTitle}>
+            {kissesToday.received.length > 0
+              ? `${HEART}  Hoy ${displayName(currentUser === 'salo' ? 'tao' : 'salo')} te ha mandado ${besitos(kissesToday.received.length)}`
+              : `${HEART}  Hoy ${displayName(currentUser === 'salo' ? 'tao' : 'salo')} aún no te ha mandado besitos`}
+          </Text>
+          {kissesToday.received.length > 0 && (
+            <Text style={styles.kissCounterTimes}>
+              {kissesToday.received.length > MAX_KISS_TIMES ? `+${kissesToday.received.length - MAX_KISS_TIMES} · ` : ''}
+              {kissesToday.received
+                .slice(-MAX_KISS_TIMES)
+                .map(k => `${formatKissTime(k.created_at)}${k.data?.special ? ` ${SPARKLE}` : ''}`)
+                .join(' · ')}
+            </Text>
+          )}
+          <Text style={styles.kissCounterSent}>
+            Tú le has mandado {besitos(kissesToday.sentCount)}
+          </Text>
+        </View>
+
         <View style={styles.reminderSectionWrapper}>
           <View style={[styles.papercutWrapper, styles.secondaryPapercut]}>
             <View style={styles.buttonWrapper}>
@@ -696,6 +770,40 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 40,
     
     transform: [{ rotate: '0.5deg' }],
+  },
+  kissCounter: {
+    width: '92%',
+    marginTop: -10,
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#FF9E9E',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  kissCounterTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E05A5A',
+    textAlign: 'center',
+  },
+  kissCounterTimes: {
+    marginTop: 6,
+    fontSize: 14,
+    color: appColors.text,
+    textAlign: 'center',
+  },
+  kissCounterSent: {
+    marginTop: 6,
+    fontSize: 13,
+    color: appColors.textLight,
   },
   scheduleButton: {
     backgroundColor: '#5D93DC',  
