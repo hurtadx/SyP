@@ -18,52 +18,36 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const HEART = '♡';
+const SUN = '☀︎';
+const MOON = '☾';
+const NOTE = '♪';
+const SPARKLE = '✦';
+
+const displayName = (user) => (user === 'salo' ? 'Salo' : 'Tao');
+
 const DAILY_REMINDERS = [
-  {
-    id: 'reminder-am-prep',
-    hour: 7,
-    minute: 36,
-    channelId: 'reminders',
-    content: {
-      title: "¡Prepárate mi amor! 🌞",
-      body: "En un minuto es hora de nuestro besito de las 7:37 AM 💋",
-    },
-  },
-  {
-    id: 'reminder-am-kiss',
-    hour: 7,
-    minute: 37,
-    channelId: 'special-moments',
-    content: {
-      title: "✨ 7:37 AM - Momento Especial ✨",
-      body: "¡Es el momento perfecto para un besito! 💕 Piensa en tu amor...",
-      sound: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-    },
-  },
-  {
-    id: 'reminder-pm-prep',
-    hour: 19,
-    minute: 36,
-    channelId: 'reminders',
-    content: {
-      title: "¡Prepárate mi amor! 🌙",
-      body: "En un minuto es hora de nuestro besito de las 7:37 PM 💋",
-    },
-  },
-  {
-    id: 'reminder-pm-kiss',
-    hour: 19,
-    minute: 37,
-    channelId: 'special-moments',
-    content: {
-      title: "✨ 7:37 PM - Momento Especial ✨",
-      body: "¡Es el momento perfecto para un besito! 💕 Piensa en tu amor...",
-      sound: true,
-      priority: Notifications.AndroidNotificationPriority.HIGH,
-    },
-  },
+  { id: 'reminder-am-prep', hour: 7, minute: 36, channelId: 'reminders', kind: 'prep', icon: SUN },
+  { id: 'reminder-am-kiss', hour: 7, minute: 37, channelId: 'special-moments', kind: 'kiss' },
+  { id: 'reminder-pm-prep', hour: 19, minute: 36, channelId: 'reminders', kind: 'prep', icon: MOON },
+  { id: 'reminder-pm-kiss', hour: 19, minute: 37, channelId: 'special-moments', kind: 'kiss' },
 ];
+
+const reminderContent = (reminder, partnerName) => {
+  if (reminder.kind === 'prep') {
+    return {
+      title: `Casi son las 7:37 ${reminder.icon}`,
+      body: `En un minuto le mandas un besito a ${partnerName}`,
+    };
+  }
+
+  return {
+    title: `Besito besito ${HEART}`,
+    body: `Son las 7:37, mándale un besito a ${partnerName}`,
+    sound: true,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
+  };
+};
 
 const setupNotificationChannels = async () => {
   if (Platform.OS !== 'android') return;
@@ -267,10 +251,12 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       await cancelReminders();
       await setupNotificationChannels();
 
+      const partnerName = displayName(currentUser === 'salo' ? 'tao' : 'salo');
+
       for (const reminder of DAILY_REMINDERS) {
         await Notifications.scheduleNotificationAsync({
           identifier: reminder.id,
-          content: reminder.content,
+          content: reminderContent(reminder, partnerName),
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
             hour: reminder.hour,
@@ -285,7 +271,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
       showCustomModal(
         "Recordatorios activados",
-        "Recibirás notificaciones especiales a las 7:36 y 7:37 AM/PM para tus momentos especiales.",
+        "Te avisaremos a las 7:36 y 7:37, en la mañana y en la noche, para el besito.",
         "¡Perfecto!"
       );
   
@@ -325,16 +311,17 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
       
       const message = isSpecialTime
-        ? `¡Es un momento especial! 💕 ${currentUser} te envió un besito de las 7:37 💋`
-        : `${currentUser} te envió un besito 💋`;
+        ? `${displayName(currentUser)} pensó en ti a las 7:37 y te ha mandado un besito`
+        : `${displayName(currentUser)} pensó en ti y te ha mandado un besito`;
 
-      
+
       const { error } = await supabase.from('notifications').insert([
         {
           from_user: currentUser,
           to_user: otherUser,
           type: 'kiss',
           message: message,
+          data: { special: isSpecialTime },
           seen: false,
           created_at: new Date().toISOString(),
         },
@@ -345,7 +332,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       
       showCustomModal(
         "Besito enviado",
-        `${otherUser === 'salo' ? 'Salo' : 'Tao'} recibirá tu besito ❤️`,
+        `${displayName(otherUser)} recibirá tu besito ${HEART}`,
         "¡Listo!"
       );
     } catch (error) {
@@ -366,19 +353,19 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
 
           switch (notification.type) {
             case 'kiss':
-              title = "¡Un besito para ti! 💋";
+              title = notification.data?.special ? `Besito besito ${HEART}` : `Un besito para ti ${HEART}`;
               body = notification.message;
               break;
             case 'new_song':
-              title = "¡Nueva canción agregada! 🎵";
+              title = `Nueva canción ${NOTE}`;
               body = notification.message;
               break;
             case 'new_photo':
-              title = "¡Nueva foto en la galería! 📸";
+              title = `Nueva foto ${SPARKLE}`;
               body = notification.message;
               break;
             case 'new_place':
-              title = "¡Nuevo lugar especial! 📍";
+              title = `Nuevo lugar ${SPARKLE}`;
               body = notification.message;
               break;
             default:
