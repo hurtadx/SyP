@@ -379,6 +379,13 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
+        <View style={[styles.userBadge, currentUser === 'salo' ? styles.saloBadge : styles.taoBadge]}>
+          <Image
+            source={currentUser === 'salo' ? require('../assets/Icons/Sol.png') : require('../assets/Icons/Tao.png')}
+            style={styles.userBadgeIcon}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.title}>Sal y Pimienta</Text>
 
         
@@ -514,8 +521,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  userBadge: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+    marginBottom: 10,
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  saloBadge: {
+    backgroundColor: 'rgba(255, 126, 126, 0.7)',
+    borderColor: 'rgba(255, 126, 126, 0.9)',
+  },
+  taoBadge: {
+    backgroundColor: 'rgba(75, 137, 220, 0.7)',
+    borderColor: 'rgba(75, 137, 220, 0.9)',
+  },
+  userBadgeIcon: {
+    width: '100%',
+    height: '100%',
+  },
   title: {
-    fontSize: 40,  
+    fontSize: 40,
     fontWeight: 'bold',
     marginBottom: 30,
     color: '#3A539B',  
