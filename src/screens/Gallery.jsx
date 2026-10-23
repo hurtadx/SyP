@@ -46,6 +46,58 @@ export default function GalleryScreen({ currentUser }) {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [filterUser, setFilterUser] = useState('all');
   const insets = useSafeAreaInsets();
+  const [photoMenuVisible, setPhotoMenuVisible] = useState(false);
+  const [editingCaption, setEditingCaption] = useState(false);
+  const [captionDraft, setCaptionDraft] = useState('');
+  const [savingCaption, setSavingCaption] = useState(false);
+
+  const closeDetailModal = () => {
+    Keyboard.dismiss();
+    setPhotoMenuVisible(false);
+    setEditingCaption(false);
+    setDetailModalVisible(false);
+  };
+
+  const startEditingCaption = () => {
+    setPhotoMenuVisible(false);
+    setCaptionDraft(viewImage?.caption || '');
+    setEditingCaption(true);
+  };
+
+  const confirmDeleteImage = () => {
+    setPhotoMenuVisible(false);
+    Alert.alert(
+      'Eliminar imagen',
+      '¿Estás seguro de que quieres eliminar esta imagen?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => deleteImage(viewImage.id, viewImage.image_url) }
+      ]
+    );
+  };
+
+  const saveCaption = async () => {
+    setSavingCaption(true);
+    try {
+      const newCaption = captionDraft.trim();
+      const { error } = await supabase
+        .from('photos')
+        .update({ caption: newCaption })
+        .eq('id', viewImage.id);
+
+      if (error) throw error;
+
+      setImages(images.map(img => img.id === viewImage.id ? { ...img, caption: newCaption } : img));
+      setViewImage({ ...viewImage, caption: newCaption });
+      setEditingCaption(false);
+      Keyboard.dismiss();
+    } catch (error) {
+      console.error('Error actualizando descripción:', error);
+      Alert.alert('Error', 'No se pudo guardar la descripción.');
+    } finally {
+      setSavingCaption(false);
+    }
+  };
 
   const closeUploadModal = () => {
     Keyboard.dismiss();
@@ -454,10 +506,11 @@ export default function GalleryScreen({ currentUser }) {
           transparent={true}
           visible={detailModalVisible}
           statusBarTranslucent
-          onRequestClose={() => setDetailModalVisible(false)}
+          onRequestClose={closeDetailModal}
         >
           <GestureHandlerRootView style={styles.detailModalOverlay}>
-            <View
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={[
                 styles.detailModalContainer,
                 { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }
@@ -469,14 +522,40 @@ export default function GalleryScreen({ currentUser }) {
                     <Text style={styles.detailModalTitle}>
                       {new Date(viewImage.created_at).toLocaleDateString()}
                     </Text>
-                    <TouchableOpacity
-                      onPress={() => setDetailModalVisible(false)}
-                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                    >
-                      <Ionicons name="close" size={28} color="#fff" />
-                    </TouchableOpacity>
+                    <View style={styles.detailHeaderActions}>
+                      {viewImage.uploaded_by === currentUser && (
+                        <TouchableOpacity
+                          onPress={() => setPhotoMenuVisible(!photoMenuVisible)}
+                          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          style={styles.detailHeaderButton}
+                        >
+                          <Ionicons name="ellipsis-horizontal" size={26} color="#fff" />
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        onPress={closeDetailModal}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        style={styles.detailHeaderButton}
+                      >
+                        <Ionicons name="close" size={28} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  
+
+                  {photoMenuVisible && (
+                    <View style={[styles.photoMenu, { top: insets.top + 50 }]}>
+                      <TouchableOpacity style={styles.photoMenuItem} onPress={startEditingCaption}>
+                        <Ionicons name="create-outline" size={20} color="#333" />
+                        <Text style={styles.photoMenuText}>Editar descripción</Text>
+                      </TouchableOpacity>
+                      <View style={styles.photoMenuDivider} />
+                      <TouchableOpacity style={styles.photoMenuItem} onPress={confirmDeleteImage}>
+                        <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                        <Text style={[styles.photoMenuText, styles.photoMenuDeleteText]}>Eliminar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                   <GestureDetector gesture={pinchGesture}>
                     <Animated.Image
                       source={{ uri: viewImage.image_url }}
@@ -500,32 +579,49 @@ export default function GalleryScreen({ currentUser }) {
                       </Text>
                     </View>
                     
-                    {viewImage.caption && (
-                      <Text style={styles.detailCaptionText}>{viewImage.caption}</Text>
-                    )}
-                    
-                    {viewImage.uploaded_by === currentUser && (
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => {
-                          Alert.alert(
-                            'Eliminar imagen',
-                            '¿Estás seguro de que quieres eliminar esta imagen?',
-                            [
-                              { text: 'Cancelar', style: 'cancel' },
-                              { text: 'Eliminar', onPress: () => deleteImage(viewImage.id, viewImage.image_url) }
-                            ]
-                          );
-                        }}
-                      >
-                        <Ionicons name="trash" size={18} color="#fff" />
-                        <Text style={styles.deleteButtonText}>Eliminar</Text>
-                      </TouchableOpacity>
+                    {editingCaption ? (
+                      <>
+                        <TextInput
+                          style={styles.editCaptionInput}
+                          value={captionDraft}
+                          onChangeText={setCaptionDraft}
+                          placeholder="Describe este momento..."
+                          placeholderTextColor="#999"
+                          multiline
+                          autoFocus
+                        />
+                        <View style={styles.editCaptionActions}>
+                          <TouchableOpacity
+                            style={styles.editCaptionCancel}
+                            onPress={() => {
+                              Keyboard.dismiss();
+                              setEditingCaption(false);
+                            }}
+                          >
+                            <Text style={styles.editCaptionCancelText}>Cancelar</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.editCaptionSave}
+                            onPress={saveCaption}
+                            disabled={savingCaption}
+                          >
+                            {savingCaption ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Text style={styles.editCaptionSaveText}>Guardar</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    ) : (
+                      !!viewImage.caption && (
+                        <Text style={styles.detailCaptionText}>{viewImage.caption}</Text>
+                      )
                     )}
                   </View>
                 </>
               )}
-            </View>
+            </KeyboardAvoidingView>
           </GestureHandlerRootView>
         </Modal>
       </View>
@@ -834,19 +930,81 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 10,
   },
-  deleteButton: {
+  detailHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 8,
   },
-  deleteButtonText: {
+  detailHeaderButton: {
+    marginLeft: 18,
+  },
+  photoMenu: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 20,
+    elevation: 20,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    paddingVertical: 4,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  photoMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  photoMenuText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
+  },
+  photoMenuDeleteText: {
+    color: '#FF6B6B',
+  },
+  photoMenuDivider: {
+    height: 1,
+    backgroundColor: '#eee',
+  },
+  editCaptionInput: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 80,
+    maxHeight: 150,
+    fontSize: 16,
+    color: '#333',
+    textAlignVertical: 'top',
+  },
+  editCaptionActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  editCaptionCancel: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+  },
+  editCaptionCancelText: {
+    color: 'white',
+    fontSize: 15,
+  },
+  editCaptionSave: {
+    backgroundColor: appColors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  editCaptionSaveText: {
     color: 'white',
     fontWeight: 'bold',
-    marginLeft: 5,
+    fontSize: 15,
   },
   
   emptyContainer: {
