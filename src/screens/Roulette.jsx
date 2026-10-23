@@ -204,7 +204,12 @@ export default function RouletteScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+      >
         <View style={styles.overlay}>
           
           <View style={styles.titleContainer}>

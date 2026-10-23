@@ -31,6 +31,7 @@ import Animated, {
   withSpring
 } from 'react-native-reanimated';
 import { sendActivityNotification } from '../utils/notifications';
+import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
 
 const { width } = Dimensions.get('window');
 const imageWidth = width / 2 - 24; 
@@ -449,11 +450,7 @@ export default function GalleryScreen({ currentUser }) {
           statusBarTranslucent
           onRequestClose={closeUploadModal}
         >
-          <KeyboardAvoidingView
-            style={styles.modalOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
+          <KeyboardAwareOverlay style={styles.modalOverlay}>
             <ImageBackground
               source={require('../assets/Label.jpg')}
               style={styles.modalBackground}
@@ -508,7 +505,7 @@ export default function GalleryScreen({ currentUser }) {
                 </TouchableOpacity>
               </ScrollView>
             </ImageBackground>
-          </KeyboardAvoidingView>
+          </KeyboardAwareOverlay>
         </Modal>
         
         {}

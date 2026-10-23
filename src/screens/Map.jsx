@@ -4,6 +4,7 @@ import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabase';
+import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
 
 export default function MapScreen({ currentUser }) {
   const [region, setRegion] = useState({
@@ -290,9 +291,10 @@ export default function MapScreen({ currentUser }) {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={cancelMarker}
       >
-        <View style={styles.centeredView}>
+        <KeyboardAwareOverlay style={styles.centeredView}>
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Nuevo lugar especial</Text>
             
@@ -320,7 +322,7 @@ export default function MapScreen({ currentUser }) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAwareOverlay>
       </Modal>
 
       <Modal

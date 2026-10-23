@@ -12,13 +12,15 @@ import {
   Dimensions,
   ScrollView,
   Linking,
-  ImageBackground
+  ImageBackground,
+  Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Buffer } from 'buffer';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
 import { sendActivityNotification } from '../utils/notifications';
+import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
 import { SPOTIFY_CLIENT_ID as CLIENT_ID, SPOTIFY_CLIENT_SECRET as CLIENT_SECRET } from '../utils/config';
 
 const { width } = Dimensions.get('window');
@@ -35,6 +37,11 @@ export default function MusicScreen({ currentUser }) {
   const [viewMode, setViewMode] = useState('saved'); 
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedSavedSong, setSelectedSavedSong] = useState(null);
+
+  const closeAddModal = () => {
+    Keyboard.dismiss();
+    setModalVisible(false);
+  };
 
   
   useEffect(() => {
@@ -356,6 +363,8 @@ export default function MusicScreen({ currentUser }) {
         {!loading && viewMode === 'search' && (
           <FlatList
             data={searchResults}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             keyExtractor={(item) => item.id}
             renderItem={renderSearchItem}
             contentContainerStyle={styles.listContainer}
@@ -376,6 +385,8 @@ export default function MusicScreen({ currentUser }) {
         {!loading && viewMode === 'saved' && (
           <FlatList
             data={savedSongs}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderSavedItem}
             contentContainerStyle={styles.listContainer}
@@ -398,9 +409,10 @@ export default function MusicScreen({ currentUser }) {
           animationType="fade"
           transparent={true}
           visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
+          statusBarTranslucent
+          onRequestClose={closeAddModal}
         >
-          <View style={styles.modalOverlay}>
+          <KeyboardAwareOverlay style={styles.modalOverlay}>
             <ImageBackground
               source={require('../assets/Label.jpg')}
               style={styles.modalBackground}
@@ -409,7 +421,10 @@ export default function MusicScreen({ currentUser }) {
               <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Añadir un recuerdo</Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <TouchableOpacity
+                    onPress={closeAddModal}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
                     <Ionicons name="close-circle" size={28} color="#999" />
                   </TouchableOpacity>
                 </View>
@@ -449,7 +464,7 @@ export default function MusicScreen({ currentUser }) {
                 </TouchableOpacity>
               </View>
             </ImageBackground>
-          </View>
+          </KeyboardAwareOverlay>
         </Modal>
 
         {}
