@@ -134,6 +134,50 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
     animateStars();
   }, [leftStarRotation, rightStarRotation]);
 
+  const badgeFloat = useRef(new Animated.Value(0)).current;
+  const badgeBounce = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(badgeFloat, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(badgeFloat, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    floatLoop.start();
+    return () => floatLoop.stop();
+  }, [badgeFloat]);
+
+  const bounceBadge = () => {
+    badgeBounce.setValue(0.8);
+    Animated.spring(badgeBounce, {
+      toValue: 1,
+      friction: 3,
+      tension: 120,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const badgeTranslateY = badgeFloat.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -8]
+  });
+
+  const badgeRotate = badgeFloat.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-4deg', '4deg']
+  });
+
   const leftStarSpin = leftStarRotation.interpolate({
     inputRange: [0, 1],
     outputRange: ['-15deg', '15deg']
@@ -379,13 +423,27 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <View style={[styles.userBadge, currentUser === 'salo' ? styles.saloBadge : styles.taoBadge]}>
-          <Image
-            source={currentUser === 'salo' ? require('../assets/Icons/Sol.png') : require('../assets/Icons/Tao.png')}
-            style={styles.userBadgeIcon}
-            resizeMode="contain"
-          />
-        </View>
+        <TouchableOpacity activeOpacity={0.9} onPress={bounceBadge}>
+          <Animated.View
+            style={[
+              styles.userBadge,
+              currentUser === 'salo' ? styles.saloBadge : styles.taoBadge,
+              {
+                transform: [
+                  { translateY: badgeTranslateY },
+                  { rotate: badgeRotate },
+                  { scale: badgeBounce },
+                ]
+              }
+            ]}
+          >
+            <Image
+              source={currentUser === 'salo' ? require('../assets/Icons/Sol.png') : require('../assets/Icons/Tao.png')}
+              style={styles.userBadgeIcon}
+              resizeMode="contain"
+            />
+          </Animated.View>
+        </TouchableOpacity>
         <Text style={styles.title}>Sal y Pimienta</Text>
 
         
