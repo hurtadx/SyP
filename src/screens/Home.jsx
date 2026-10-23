@@ -11,6 +11,8 @@ import {
   getAndMarkNotifications, notificationTitle, savePushToken, sendActivityNotification
 } from '../utils/notifications';
 import appConfig from '../../app.json';
+import { fonts } from '../utils/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -83,6 +85,7 @@ const setupNotificationChannels = async () => {
 };
 
 export default function HomeScreen({ currentUser, setCurrentUser }) {
+  const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState('');
   const [currentAmPm, setCurrentAmPm] = useState('');
   const [remindersActive, setRemindersActive] = useState(false);
@@ -442,7 +445,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
     >
       <ScrollView
         style={styles.overlay}
-        contentContainerStyle={styles.overlayContent}
+        contentContainerStyle={[styles.overlayContent, { paddingTop: insets.top + 24 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -538,7 +541,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
                   <Text style={styles.buttonText}>
                     {remindersActive ? "Desactivar recordatorios" : "Activar recordatorios"}
                   </Text>
-                  {remindersActive && <Text style={styles.statusIndicator}>✅</Text>}
+                  {remindersActive && <Text style={styles.statusIndicator}>{HEART}</Text>}
                 </View>
               </TouchableOpacity>
             </View>
@@ -648,21 +651,21 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   saloBadge: {
-    backgroundColor: 'rgba(255, 126, 126, 0.7)',
-    borderColor: 'rgba(255, 126, 126, 0.9)',
+    backgroundColor: 'rgba(240, 138, 138, 0.7)',
+    borderColor: 'rgba(240, 138, 138, 0.9)',
   },
   taoBadge: {
-    backgroundColor: 'rgba(75, 137, 220, 0.7)',
-    borderColor: 'rgba(75, 137, 220, 0.9)',
+    backgroundColor: 'rgba(124, 143, 214, 0.7)',
+    borderColor: 'rgba(124, 143, 214, 0.9)',
   },
   userBadgeIcon: {
     width: '100%',
     height: '100%',
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 34,
-    fontWeight: 'bold',
-    color: '#3A539B',  
+    color: '#5566B0',  
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
@@ -700,13 +703,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   time: {
+    fontFamily: fonts.bold,
     fontSize: 38,
-    fontWeight: 'bold',
     color: appColors.text,
   },
   ampm: {
+    fontFamily: fonts.bold,
     fontSize: 22,  
-    fontWeight: 'bold',
     color: appColors.secondary,
     marginLeft: 8,
   },
@@ -743,7 +746,7 @@ const styles = StyleSheet.create({
 
   
   kissButton: {
-    backgroundColor: '#FF7E7E',  
+    backgroundColor: '#F08A8A',  
     padding: 14,
     alignItems: 'center',
     width: '100%',
@@ -753,7 +756,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#FF9E9E',
+    borderColor: '#F5A9A9',
     
     borderTopLeftRadius: 35,
     borderTopRightRadius: 22,
@@ -771,7 +774,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#FF9E9E',
+    borderColor: '#F5A9A9',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -780,24 +783,26 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   kissCounterTitle: {
+    fontFamily: fonts.bold,
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E05A5A',
+    color: '#D96C6C',
     textAlign: 'center',
   },
   kissCounterTimes: {
+    fontFamily: fonts.regular,
     marginTop: 6,
     fontSize: 14,
     color: appColors.text,
     textAlign: 'center',
   },
   kissCounterSent: {
+    fontFamily: fonts.regular,
     marginTop: 6,
     fontSize: 13,
     color: appColors.textLight,
   },
   scheduleButton: {
-    backgroundColor: '#5D93DC',  
+    backgroundColor: '#7C8FD6',  
     padding: 14,
     alignItems: 'center',
     width: '100%',
@@ -807,7 +812,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#7BA7E1',
+    borderColor: '#9AA8E0',
     
     borderTopLeftRadius: 25,
     borderTopRightRadius: 38,
@@ -817,18 +822,19 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-0.7deg' }],
   },
   activeButton: {
-    backgroundColor: '#4A78C7',  
-    borderColor: '#3A67B2',
+    backgroundColor: '#6577C4',  
+    borderColor: '#5566B0',
   },
   buttonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     fontSize: 20,  
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   statusIndicator: {
+    fontFamily: fonts.regular,
     fontSize: 22,
     marginLeft: 10,
     color: 'white',
@@ -850,20 +856,21 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   noteTitle: {
+    fontFamily: fonts.bold,
     fontSize: 20,  
-    fontWeight: 'bold',
     marginBottom: 12,
     color: appColors.accent,
     textAlign: 'center',
   },
   note: {
+    fontFamily: fonts.regular,
     color: appColors.textLight,
     marginBottom: 10,  
     fontSize: 17,  
   },
   noteStatus: {
+    fontFamily: fonts.bold,
     marginTop: 14,  
-    fontWeight: 'bold',
     fontSize: 18,  
     textAlign: 'center',
     color: appColors.text,
@@ -886,7 +893,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   secondaryPapercut: {
-    backgroundColor: '#EAF2FF', 
+    backgroundColor: '#EEF0FB', 
     borderTopLeftRadius: 30,
     borderTopRightRadius: 48,
     borderBottomLeftRadius: 52,
@@ -927,13 +934,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.75)', 
   },
   modalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     color: appColors.text,
     marginBottom: 15,
     textAlign: 'center',
   },
   modalText: {
+    fontFamily: fonts.regular,
     fontSize: 18,
     color: appColors.textLight,
     marginBottom: 20,
@@ -958,16 +966,16 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   modalButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   logoutButton: {
     marginTop: 10,
-    backgroundColor: '#FF7E7E',
+    backgroundColor: '#F08A8A',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 30,
@@ -978,9 +986,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   logoutButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     fontSize: 15,
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,

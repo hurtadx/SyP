@@ -22,10 +22,13 @@ import { supabase } from '../utils/supabase';
 import { sendActivityNotification } from '../utils/notifications';
 import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
 import { SPOTIFY_CLIENT_ID as CLIENT_ID, SPOTIFY_CLIENT_SECRET as CLIENT_SECRET } from '../utils/config';
+import { fonts } from '../utils/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 export default function MusicScreen({ currentUser }) {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [savedSongs, setSavedSongs] = useState([]);
@@ -258,7 +261,7 @@ export default function MusicScreen({ currentUser }) {
               deleteSong(item.id);
             }}
           >
-            <Ionicons name="trash-outline" size={22} color="#FF6B6B" />
+            <Ionicons name="trash-outline" size={22} color="#F08A8A" />
           </TouchableOpacity>
         </View>
         
@@ -319,7 +322,7 @@ export default function MusicScreen({ currentUser }) {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.pageTitle}>Nuestras Canciones</Text>
         
         <View style={styles.searchContainer}>
@@ -551,8 +554,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   pageTitle: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: 'bold',
     color: appColors.primary,
     textAlign: 'center',
     marginVertical: 16,
@@ -569,6 +572,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   searchInput: {
+    fontFamily: fonts.regular,
     flex: 1,
     height: 48,
     borderWidth: 1,
@@ -622,12 +626,12 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-0.3deg' }],
   },
   tabText: {
+    fontFamily: fonts.medium,
     fontSize: 15,
-    fontWeight: '500',
     color: '#666',
   },
   activeTabText: {
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: 'white',
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
@@ -661,11 +665,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   songTitle: {
+    fontFamily: fonts.bold,
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#333',
   },
   artistName: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     marginTop: 4,
@@ -710,16 +715,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   savedSongTitle: {
+    fontFamily: fonts.bold,
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#333',
   },
   savedArtistName: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     marginVertical: 3,
   },
   memoryText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#555',
     fontStyle: 'italic',
@@ -746,27 +753,27 @@ const styles = StyleSheet.create({
   },
   saloSongContainer: {
     backgroundColor: 'rgba(255, 240, 240, 0.95)',
-    borderColor: 'rgba(255, 126, 126, 0.5)',
+    borderColor: 'rgba(240, 138, 138, 0.5)',
     borderWidth: 1.5,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 16,
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 22,
     transform: [{ rotate: '0.3deg' }],
-    shadowColor: '#FF7E7E',
+    shadowColor: '#F08A8A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
   },
   taoSongContainer: {
     backgroundColor: 'rgba(240, 245, 255, 0.95)',
-    borderColor: 'rgba(75, 137, 220, 0.5)',
+    borderColor: 'rgba(124, 143, 214, 0.5)',
     borderWidth: 1.5,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 20,
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 14,
     transform: [{ rotate: '-0.3deg' }],
-    shadowColor: '#4B89DC',
+    shadowColor: '#7C8FD6',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
   },
@@ -777,6 +784,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyText: {
+    fontFamily: fonts.regular,
     textAlign: 'center',
     fontSize: 16,
     color: '#777',
@@ -821,8 +829,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: 'bold',
     color: appColors.primary,
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
@@ -851,11 +859,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   selectedSongTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: 'bold',
     color: '#333',
   },
   selectedArtistName: {
+    fontFamily: fonts.regular,
     fontSize: 15,
     color: '#555',
     marginTop: 4,
@@ -869,6 +878,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '10deg' }],
   },
   memoryInput: {
+    fontFamily: fonts.regular,
     borderWidth: 1.5,
     borderColor: '#ddd',
     borderRadius: 15,
@@ -898,8 +908,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '0.5deg' }],
   },
   saveButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
     fontSize: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
@@ -913,6 +923,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   memoryFullText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
@@ -938,8 +949,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-0.5deg' }],
   },
   spotifyButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
     fontSize: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },

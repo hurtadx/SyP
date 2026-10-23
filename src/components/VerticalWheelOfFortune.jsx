@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import Svg, { G, Path, Circle, Text as SvgText } from 'react-native-svg';
 import { appColors } from '../utils/colors';
+import { fonts } from '../utils/fonts';
 
 const MAX_LABEL_LENGTH = 12;
 
@@ -15,11 +16,13 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinis
 
   const wheelOptions = options;
 
-  const wheelColors = colors.length > 0 ? colors : [
-    "#FF5252", "#FF7752", "#FFB752", "#FFE652",
-    "#B4FF52", "#52FF9A", "#52FFFF", "#5286FF",
-    "#A952FF", "#FF52B4"
-  ];
+  const wheelColors = colors.length > 0 ? colors : appColors.wheel;
+
+  const sliceColor = (index) => {
+    const isLast = index === wheelOptions.length - 1;
+    const wrapsToFirst = wheelOptions.length % wheelColors.length === 1;
+    return wheelColors[(isLast && wrapsToFirst ? 2 : index) % wheelColors.length];
+  };
 
   const centerX = size / 2;
   const centerY = size / 2;
@@ -63,7 +66,7 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinis
           <Svg height={20} width={30} viewBox="0 0 30 20">
             <Path
               d="M 0,10 L 20,0 L 20,20 Z"
-              fill="#FF3131"
+              fill={appColors.pink}
               stroke="white"
               strokeWidth="1"
             />
@@ -78,16 +81,6 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinis
             }}
           >
             <Svg height={size} width={size} viewBox={`0 0 ${size} ${size}`}>
-              
-              <Circle 
-                cx={centerX} 
-                cy={centerY} 
-                r={wheelRadius * 0.12} 
-                fill="#FFD700" 
-                stroke="white" 
-                strokeWidth="2" 
-              />
-              
               {wheelOptions.map((option, index) => {
                 const angle = (index * 360) / wheelOptions.length;
                 const sliceAngle = 360 / wheelOptions.length;
@@ -103,7 +96,7 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinis
                          A ${wheelRadius},${wheelRadius} 0 0,1 
                          ${centerX + wheelRadius * Math.cos(radEnd)},
                          ${centerY + wheelRadius * Math.sin(radEnd)} Z`}
-                      fill={wheelColors[index % wheelColors.length]}
+                      fill={sliceColor(index)}
                       stroke="white"
                       strokeWidth="1"
                     />
@@ -116,11 +109,11 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinis
                       <SvgText
                         x={centerX}
                         y={centerY - wheelRadius * 0.6}
-                        fill="white"
-                        fontWeight="bold"
+                        fill={appColors.text}
+                        fontFamily={fonts.semibold}
                         fontSize={fontSize}
                         textAnchor="middle"
-                        rotation={90}
+                        rotation={-90}
                         originX={centerX}
                         originY={centerY - wheelRadius * 0.6}
                       >
@@ -130,6 +123,15 @@ const VerticalWheelOfFortune = ({ options = [], colors = [], size = 300, onFinis
                   </G>
                 );
               })}
+
+              <Circle
+                cx={centerX}
+                cy={centerY}
+                r={wheelRadius * 0.12}
+                fill={appColors.cream}
+                stroke={appColors.pink}
+                strokeWidth="3"
+              />
             </Svg>
           </Animated.View>
       </View>
@@ -179,9 +181,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#9e9e9e',
   },
   buttonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
     textAlign: 'center',
   }
 });

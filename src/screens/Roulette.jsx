@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
 import VerticalWheelOfFortune from '../components/VerticalWheelOfFortune';
+import { fonts } from '../utils/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 const { width } = Dimensions.get('window');
@@ -47,6 +49,7 @@ const CATEGORY_ITEMS = [
 ];
 
 export default function RouletteScreen() {
+  const insets = useSafeAreaInsets();
   const [presetOptions, setPresetOptions] = useState(PRESET_CATEGORIES);
   const [newOption, setNewOption] = useState('');
   const [result, setResult] = useState('');
@@ -173,21 +176,16 @@ export default function RouletteScreen() {
 
   
   const getColorForIndex = (index) => {
-    const colors = [
-      "#FF5252", "#FF7752", "#FFB752", "#FFE652", 
-      "#B4FF52", "#52FF9A", "#52FFFF", "#5286FF",
-      "#A952FF", "#FF52B4"
-    ];
-    return colors[index % colors.length];
+    return appColors.wheel[index % appColors.wheel.length];
   };
 
   
   const getCategoryName = (category) => {
     const names = {
-      comidas: 'Comidas 🍕',
-      actividades: 'Actividades 🎮',
-      lugares: 'Lugares 🗺️',
-      personalizada: 'Mi lista personalizada ✏️'
+      comidas: 'Comidas ✿',
+      actividades: 'Actividades ☆',
+      lugares: 'Lugares ⚑',
+      personalizada: 'Mi lista personalizada ✎'
     };
     return names[category] || category;
   };
@@ -210,7 +208,7 @@ export default function RouletteScreen() {
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
       >
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, { paddingTop: insets.top + 20 }]}>
           
           <View style={styles.titleContainer}>
             <Image 
@@ -273,7 +271,6 @@ export default function RouletteScreen() {
               {options.length > 1 ? (
                 <VerticalWheelOfFortune
                   options={options}
-                  colors={options.map((_, index) => getColorForIndex(index))}
                   size={WHEEL_SIZE}
                   onFinish={handleSpinResult}
                 />
@@ -344,7 +341,7 @@ export default function RouletteScreen() {
                       style={styles.deleteOptionButton}
                       onPress={() => deleteOption(item)}
                     >
-                      <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                      <Ionicons name="trash-outline" size={18} color="#F08A8A" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -438,8 +435,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: 'bold',
     color: appColors.primary,
     textAlign: 'center',
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
@@ -560,19 +557,20 @@ const styles = StyleSheet.create({
     backgroundColor: appColors.lightBg,
   },
   categoryItemText: {
+    fontFamily: fonts.regular,
     flex: 1,
     fontSize: 16,
     color: '#333',
     marginLeft: 12,
   },
   activeCategoryItemText: {
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: appColors.primary,
   },
   categoryButtonText: {
+    fontFamily: fonts.bold,
     flex: 1,
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#333',
     marginLeft: 8,
   },
@@ -582,6 +580,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
+    fontFamily: fonts.regular,
     flex: 1,
     height: 52,
     borderWidth: 1.5,
@@ -644,8 +643,8 @@ const styles = StyleSheet.create({
     height: 30,
   },
   optionsListTitle: {
+    fontFamily: fonts.bold,
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#555',
   },
   optionsList: {
@@ -670,11 +669,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   optionText: {
+    fontFamily: fonts.regular,
     flex: 1,
     fontSize: 15,
     color: '#333',
   },
   emptyListText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#777',
     textAlign: 'center',
@@ -763,8 +764,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
   resultModalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: 'bold',
     color: appColors.primary,
     marginBottom: 15,
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
@@ -772,8 +773,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   resultModalText: {
+    fontFamily: fonts.bold,
     fontSize: 26,
-    fontWeight: 'bold',
     color: '#444',
     marginBottom: 5,
     textAlign: 'center',
@@ -797,9 +798,9 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '0.5deg' }],
   },
   resultModalButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,

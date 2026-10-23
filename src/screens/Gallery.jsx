@@ -32,6 +32,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { sendActivityNotification } from '../utils/notifications';
 import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
+import { fonts } from '../utils/fonts';
 
 const { width } = Dimensions.get('window');
 const imageWidth = width / 2 - 24; 
@@ -323,6 +324,7 @@ export default function GalleryScreen({ currentUser }) {
   
   const renderItem = ({ item }) => {
     const isSalo = item.uploaded_by === 'salo';
+    const tilt = `${((item.id * 37) % 7) - 3}deg`;
     
     return (
       <TouchableOpacity 
@@ -334,7 +336,8 @@ export default function GalleryScreen({ currentUser }) {
       >
         <View style={[
           styles.polaroidInner,
-          isSalo ? styles.saloPolaroid : styles.taoPolaroid
+          isSalo ? styles.saloPolaroid : styles.taoPolaroid,
+          { transform: [{ rotate: tilt }] }
         ]}>
           <Image 
             source={{ uri: item.image_url }} 
@@ -384,7 +387,7 @@ export default function GalleryScreen({ currentUser }) {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Galería de Recuerdos</Text>
         
         {}
@@ -559,7 +562,7 @@ export default function GalleryScreen({ currentUser }) {
                       </TouchableOpacity>
                       <View style={styles.photoMenuDivider} />
                       <TouchableOpacity style={styles.photoMenuItem} onPress={confirmDeleteImage}>
-                        <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                        <Ionicons name="trash-outline" size={20} color="#F08A8A" />
                         <Text style={[styles.photoMenuText, styles.photoMenuDeleteText]}>Eliminar</Text>
                       </TouchableOpacity>
                     </View>
@@ -650,8 +653,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: 'bold',
     color: appColors.primary,
     textAlign: 'center',
     marginVertical: 16,
@@ -671,7 +674,7 @@ const styles = StyleSheet.create({
   polaroidInner: {
     width: '100%',
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 3,
     padding: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -685,13 +688,13 @@ const styles = StyleSheet.create({
   
   saloPolaroid: {
     borderTopWidth: 3,
-    borderColor: '#FF7E7E',
+    borderColor: '#F08A8A',
     backgroundColor: 'rgba(255, 250, 250, 0.95)',
     transform: [{ rotate: '1.5deg' }],
   },
   taoPolaroid: {
     borderTopWidth: 3,
-    borderColor: '#4B89DC',
+    borderColor: '#7C8FD6',
     backgroundColor: 'rgba(250, 250, 255, 0.95)',
     transform: [{ rotate: '-1deg' }],
   },
@@ -705,11 +708,13 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   captionText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#333',
     textAlign: 'center',
   },
   dateText: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: '#888',
     textAlign: 'center',
@@ -755,13 +760,13 @@ const styles = StyleSheet.create({
     backgroundColor: appColors.primary,
   },
   filterButtonText: {
+    fontFamily: fonts.medium,
     fontSize: 14,
-    fontWeight: '500',
     color: '#666',
   },
   activeFilterText: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
   },
   
   actionButtons: {
@@ -792,8 +797,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-0.5deg' }],
   },
   actionButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
     fontSize: 16,
     marginLeft: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
@@ -828,8 +833,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: 'bold',
     color: appColors.primary,
     textShadowColor: 'rgba(255, 255, 255, 0.5)',
     textShadowOffset: { width: 1, height: 1 },
@@ -849,6 +854,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   captionInput: {
+    fontFamily: fonts.regular,
     borderWidth: 1.5,
     borderColor: '#ddd',
     borderRadius: 15,
@@ -879,8 +885,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '0.5deg' }],
   },
   uploadButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
     fontSize: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
@@ -905,8 +911,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   detailModalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: 'bold',
     color: 'white',
   },
   detailImage: {
@@ -930,11 +936,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   detailCreatorText: {
+    fontFamily: fonts.medium,
     fontSize: 16,
     color: 'white',
-    fontWeight: '500',
   },
   detailCaptionText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: 'white',
     marginBottom: 10,
@@ -967,18 +974,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   photoMenuText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#333',
     marginLeft: 12,
   },
   photoMenuDeleteText: {
-    color: '#FF6B6B',
+    color: '#F08A8A',
   },
   photoMenuDivider: {
     height: 1,
     backgroundColor: '#eee',
   },
   editCaptionInput: {
+    fontFamily: fonts.regular,
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 12,
@@ -999,6 +1008,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   editCaptionCancelText: {
+    fontFamily: fonts.regular,
     color: 'white',
     fontSize: 15,
   },
@@ -1011,8 +1021,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editCaptionSaveText: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
     fontSize: 15,
   },
   
@@ -1023,6 +1033,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyText: {
+    fontFamily: fonts.regular,
     textAlign: 'center',
     fontSize: 16,
     color: '#777',

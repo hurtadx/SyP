@@ -5,8 +5,11 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabase';
 import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
+import { fonts } from '../utils/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MapScreen({ currentUser }) {
+  const insets = useSafeAreaInsets();
   const [region, setRegion] = useState({
     latitude: 6.2476, 
     longitude: -75.5658,
@@ -185,7 +188,7 @@ export default function MapScreen({ currentUser }) {
         {tempMarker && (
           <Marker
             coordinate={tempMarker}
-            pinColor="#ff6b6b"
+            pinColor="#F08A8A"
           />
         )}
 
@@ -196,7 +199,7 @@ export default function MapScreen({ currentUser }) {
               latitude: marker.latitude,
               longitude: marker.longitude,
             }}
-            pinColor={marker.created_by === 'salo' ? '#ff6b6b' : '#4B89DC'}
+            pinColor={marker.created_by === 'salo' ? '#F08A8A' : '#7C8FD6'}
             onCalloutPress={() => showMarkerDetail(marker)}
           >
             <Callout tooltip={true}>
@@ -215,7 +218,7 @@ export default function MapScreen({ currentUser }) {
       </MapView>
       
       <TouchableOpacity 
-        style={styles.placesButton}
+        style={[styles.placesButton, { top: insets.top + 12 }]}
         onPress={togglePanel}
       >
         <Ionicons name="list" size={24} color="white" />
@@ -269,7 +272,7 @@ export default function MapScreen({ currentUser }) {
               >
                 <View style={[
                   styles.placeIcon, 
-                  { backgroundColor: item.created_by === 'salo' ? '#ff6b6b' : '#4B89DC' }
+                  { backgroundColor: item.created_by === 'salo' ? '#F08A8A' : '#7C8FD6' }
                 ]} />
                 <View style={styles.placeInfo}>
                   <Text style={styles.placeDate}>
@@ -349,7 +352,7 @@ export default function MapScreen({ currentUser }) {
             
             <View style={styles.markerCreatorInfo}>
               <View style={[styles.creatorIndicator, { 
-                backgroundColor: selectedMarker?.created_by === 'salo' ? '#ff6b6b' : '#4B89DC' 
+                backgroundColor: selectedMarker?.created_by === 'salo' ? '#F08A8A' : '#7C8FD6' 
               }]} />
               <Text style={styles.creatorText}>
                 Añadido por {selectedMarker?.created_by === 'salo' ? 'Salo' : 'Tao'}
@@ -393,7 +396,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
-    backgroundColor: '#ff6b6b',
+    backgroundColor: '#F08A8A',
     padding: 15,
     borderRadius: 30,
     flexDirection: 'row',
@@ -406,12 +409,12 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   cancelButton: {
-    backgroundColor: '#ff9e9e',
+    backgroundColor: '#F5A9A9',
   },
   buttonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     marginLeft: 8,
-    fontWeight: 'bold',
   },
   centeredView: {
     flex: 1,
@@ -431,8 +434,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
   },
@@ -457,14 +460,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   buttonSave: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: '#F08A8A',
   },
   buttonCancel: {
     backgroundColor: '#ddd',
   },
   textStyle: {
+    fontFamily: fonts.bold,
     color: 'white',
-    fontWeight: 'bold',
     textAlign: 'center',
   },
   callout: {
@@ -472,10 +475,11 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   calloutTitle: {
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     fontSize: 14,
   },
   calloutDescription: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     marginTop: 5,
   },
@@ -483,7 +487,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
-    backgroundColor: '#4B89DC',
+    backgroundColor: '#7C8FD6',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 25,
@@ -521,8 +525,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   panelTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: 'bold',
     color: '#333',
   },
   placesList: {
@@ -536,7 +540,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   selectedPlaceItem: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#F4F5FD',
   },
   placeIcon: {
     width: 12,
@@ -548,11 +552,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   placeDate: {
+    fontFamily: fonts.bold,
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#444',
   },
   placeDescription: {
+    fontFamily: fonts.regular,
     fontSize: 13,
     color: '#666',
     marginTop: 3,
@@ -569,10 +574,11 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   calloutAction: {
+    fontFamily: fonts.regular,
     textAlign: 'center',
     marginTop: 8,
     fontSize: 12,
-    color: '#4B89DC',
+    color: '#7C8FD6',
     fontStyle: 'italic',
   },
   detailModalView: {
@@ -594,8 +600,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   detailModalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: 'bold',
     color: '#333',
     flex: 1,
   },
@@ -614,6 +620,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   creatorText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
   },
@@ -622,12 +629,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   detailText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
   },
   directionsButton: {
-    backgroundColor: '#4B89DC',
+    backgroundColor: '#7C8FD6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -636,9 +644,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   directionsButtonText: {
+    fontFamily: fonts.bold,
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
     marginLeft: 8,
   },
 });

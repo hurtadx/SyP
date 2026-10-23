@@ -6,6 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  useFonts, Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold
+} from '@expo-google-fonts/fredoka';
+import { appColors } from './src/utils/colors';
+import { fonts } from './src/utils/fonts';
 
 // Screens
 import HomeScreen from './src/screens/Home';
@@ -20,6 +25,9 @@ const Tab = createBottomTabNavigator();
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fontsLoaded] = useFonts({
+    Fredoka_400Regular, Fredoka_500Medium, Fredoka_600SemiBold, Fredoka_700Bold
+  });
 
   useEffect(() => {
     
@@ -40,7 +48,7 @@ export default function App() {
   }, []);
 
 
-  if (isLoading) {
+  if (isLoading || !fontsLoaded) {
     return null; 
   }
 
@@ -73,15 +81,22 @@ export default function App() {
 
               return <Ionicons name={iconName} size={size} color={color} />;
             },
-            tabBarActiveTintColor: '#ff6b6b',
-            tabBarInactiveTintColor: 'gray',
+            headerShown: false,
+            tabBarActiveTintColor: appColors.pink,
+            tabBarInactiveTintColor: appColors.textLight,
+            tabBarStyle: {
+              backgroundColor: appColors.cream,
+              borderTopColor: appColors.pinkLight,
+              borderTopWidth: 2,
+            },
+            tabBarLabelStyle: {
+              fontFamily: fonts.medium,
+              fontSize: 12,
+            },
           })}
         >
          
-          <Tab.Screen 
-            name="Inicio" 
-            options={{ title: `Inicio (${currentUser})` }}
-          >
+          <Tab.Screen name="Inicio">
             {(props) => <HomeScreen {...props} currentUser={currentUser} setCurrentUser={setCurrentUser} />}
           </Tab.Screen>
           <Tab.Screen name="Mapa">

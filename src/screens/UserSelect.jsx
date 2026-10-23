@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appColors } from '../utils/colors';
+import { fonts } from '../utils/fonts';
 
 export default function UserSelect({ onUserSelected }) {
   const selectUser = async (user) => {
@@ -80,10 +81,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 38,
-    fontWeight: 'bold',
     marginBottom: 70,
-    color: '#3A539B',
+    color: '#5566B0',
     textShadowColor: 'white',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
@@ -137,31 +138,31 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   saloBorder: {
-    backgroundColor: 'rgba(255, 126, 126, 0.7)',
+    backgroundColor: 'rgba(240, 138, 138, 0.7)',
     borderWidth: 2,
-    borderColor: 'rgba(255, 126, 126, 0.9)',
+    borderColor: 'rgba(240, 138, 138, 0.9)',
   },
   taoBorder: {
-    backgroundColor: 'rgba(75, 137, 220, 0.7)',
+    backgroundColor: 'rgba(124, 143, 214, 0.7)',
     borderWidth: 2,
-    borderColor: 'rgba(75, 137, 220, 0.9)',
+    borderColor: 'rgba(124, 143, 214, 0.9)',
   },
   userIcon: {
     width: 100,
     height: 100,
   },
   iconLabel: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: 'bold',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
   saloLabel: {
-    color: '#FF7E7E',
+    color: '#F08A8A',
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
   },
   taoLabel: {
-    color: '#4B89DC',
+    color: '#7C8FD6',
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
   }
 });
