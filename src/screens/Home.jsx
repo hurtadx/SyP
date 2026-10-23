@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Alert, Image, 
-  Animated, Easing, ImageBackground, Modal, Platform
+  Animated, Easing, ImageBackground, Modal, Platform, ScrollView
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -464,29 +464,35 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity activeOpacity={0.9} onPress={bounceBadge}>
-          <Animated.View
-            style={[
-              styles.userBadge,
-              currentUser === 'salo' ? styles.saloBadge : styles.taoBadge,
-              {
-                transform: [
-                  { translateY: badgeTranslateY },
-                  { rotate: badgeRotate },
-                  { scale: badgeBounce },
-                ]
-              }
-            ]}
-          >
-            <Image
-              source={currentUser === 'salo' ? require('../assets/Icons/Sol.png') : require('../assets/Icons/Tao.png')}
-              style={styles.userBadgeIcon}
-              resizeMode="contain"
-            />
-          </Animated.View>
-        </TouchableOpacity>
-        <Text style={styles.title}>Sal y Pimienta</Text>
+      <ScrollView
+        style={styles.overlay}
+        contentContainerStyle={styles.overlayContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity activeOpacity={0.9} onPress={bounceBadge}>
+            <Animated.View
+              style={[
+                styles.userBadge,
+                currentUser === 'salo' ? styles.saloBadge : styles.taoBadge,
+                {
+                  transform: [
+                    { translateY: badgeTranslateY },
+                    { rotate: badgeRotate },
+                    { scale: badgeBounce },
+                  ]
+                }
+              ]}
+            >
+              <Image
+                source={currentUser === 'salo' ? require('../assets/Icons/Sol.png') : require('../assets/Icons/Tao.png')}
+                style={styles.userBadgeIcon}
+                resizeMode="contain"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+          <Text style={styles.title}>Sal y Pimienta</Text>
+        </View>
 
         
         <View style={styles.clockWrapper}>
@@ -603,7 +609,7 @@ export default function HomeScreen({ currentUser, setCurrentUser }) {
           <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-      </View>
+      </ScrollView>
     </ImageBackground>
   );
 }
@@ -617,9 +623,19 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  overlayContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
   },
   
   buttonContentRow: {
@@ -628,9 +644,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   starIcon: {
-    width: 40,  
-    height: 40,  
-    marginHorizontal: 10,  
+    width: 32,
+    height: 32,
+    marginHorizontal: 10,
   },
   
   
@@ -641,13 +657,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   userBadge: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8,
-    marginBottom: 10,
+    padding: 6,
+    marginRight: 12,
     borderWidth: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -668,9 +684,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   title: {
-    fontSize: 40,
+    fontSize: 34,
     fontWeight: 'bold',
-    marginBottom: 30,
     color: '#3A539B',  
     textShadowColor: 'rgba(255, 255, 255, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
@@ -680,15 +695,15 @@ const styles = StyleSheet.create({
   
   clockWrapper: {
     position: 'relative',
-    marginBottom: 50,  
+    marginBottom: 32,
     alignItems: 'center',
   },
   rabbitOverlay: {
     position: 'absolute',
-    width: 110,  
-    height: 110,  
-    top: -55,
-    right: -45,
+    width: 90,
+    height: 90,
+    top: -45,
+    right: -38,
     transform: [{ rotate: '15deg' }],
     zIndex: 10,
   },
@@ -696,8 +711,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 25,  
-    paddingVertical: 20,  
+    paddingHorizontal: 22,
+    paddingVertical: 14,
     borderRadius: 20,  
     borderWidth: 3,  
     borderColor: appColors.secondary,
@@ -709,7 +724,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   time: {
-    fontSize: 42,  
+    fontSize: 38,
     fontWeight: 'bold',
     color: appColors.text,
   },
@@ -742,9 +757,9 @@ const styles = StyleSheet.create({
   },
   stampOverlayRepositioned: {
     position: 'absolute',
-    width: 90,  
-    height: 90,  
-    bottom: -30,
+    width: 70,
+    height: 70,
+    bottom: -20,
     right: 0,
     transform: [{ rotate: '8deg' }],
     zIndex: 0,
@@ -753,7 +768,7 @@ const styles = StyleSheet.create({
   
   kissButton: {
     backgroundColor: '#FF7E7E',  
-    padding: 18,
+    padding: 14,
     alignItems: 'center',
     width: '100%',
     shadowColor: '#000',
@@ -773,9 +788,9 @@ const styles = StyleSheet.create({
   },
   kissCounter: {
     width: '92%',
-    marginTop: -10,
-    marginBottom: 20,
-    paddingVertical: 12,
+    marginTop: -6,
+    marginBottom: 18,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderRadius: 20,
@@ -807,7 +822,7 @@ const styles = StyleSheet.create({
   },
   scheduleButton: {
     backgroundColor: '#5D93DC',  
-    padding: 18,
+    padding: 14,
     alignItems: 'center',
     width: '100%',
     shadowColor: '#000',
@@ -880,8 +895,8 @@ const styles = StyleSheet.create({
   papercutWrapper: {
     position: 'relative',
     width: '92%',
-    marginBottom: 25,
-    padding: 8,
+    marginBottom: 20,
+    padding: 6,
     backgroundColor: '#FFF0F0', 
     borderTopLeftRadius: 45,
     borderTopRightRadius: 30,
@@ -906,7 +921,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   centeredView: {
     flex: 1,
@@ -975,10 +990,10 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   logoutButton: {
-    marginTop: 20,
+    marginTop: 10,
     backgroundColor: '#FF7E7E',
-    paddingVertical: 12,
-    paddingHorizontal: 25,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -988,7 +1003,7 @@ const styles = StyleSheet.create({
   },
   logoutButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 1, height: 1 },
