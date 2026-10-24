@@ -97,3 +97,35 @@ create table if not exists saved_questions (
 alter table saved_questions enable row level security;
 drop policy if exists "open_access" on saved_questions;
 create policy "open_access" on saved_questions for all to anon using (true) with check (true);
+
+create table if not exists about_me (
+  id bigint generated always as identity primary key,
+  user_id text not null,
+  question_id text not null,
+  answer text not null,
+  updated_at timestamptz default now(),
+  unique (user_id, question_id)
+);
+
+create table if not exists quiz_games (
+  id bigint generated always as identity primary key,
+  player text not null,
+  about_user text not null,
+  mode text not null,
+  status text not null,
+  answers jsonb not null default '[]'::jsonb,
+  score int,
+  total int not null,
+  created_at timestamptz default now(),
+  reviewed_at timestamptz
+);
+
+do $$
+declare t text;
+begin
+  foreach t in array array['about_me','quiz_games'] loop
+    execute format('alter table %I enable row level security', t);
+    execute format('drop policy if exists "open_access" on %I', t);
+    execute format('create policy "open_access" on %I for all to anon using (true) with check (true)', t);
+  end loop;
+end $$;

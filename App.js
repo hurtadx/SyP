@@ -16,7 +16,7 @@ import { fonts } from './src/utils/fonts';
 import HomeScreen from './src/screens/Home';
 import MapScreen from './src/screens/Map';
 import MusicScreen from './src/screens/Music';
-import RouletteScreen from './src/screens/Roulette';
+import GamesScreen from './src/screens/Games';
 import GalleryScreen from './src/screens/Gallery';
 import QuestionsScreen from './src/screens/Questions';
 import UserSelect from './src/screens/UserSelect';
@@ -76,8 +76,8 @@ export default function App() {
                 iconName = focused ? 'map' : 'map-outline';
               } else if (route.name === 'Música') {
                 iconName = focused ? 'musical-notes' : 'musical-notes-outline';
-              } else if (route.name === 'Ruleta') {
-                iconName = focused ? 'refresh-circle' : 'refresh-circle-outline';
+              } else if (route.name === 'Juegos') {
+                iconName = focused ? 'game-controller' : 'game-controller-outline';
               } else if (route.name === 'Fotos') {
                 iconName = focused ? 'images' : 'images-outline';
               }
@@ -111,8 +111,8 @@ export default function App() {
           <Tab.Screen name="Música">
             {(props) => <MusicScreen {...props} currentUser={currentUser} />}
           </Tab.Screen>
-          <Tab.Screen name="Ruleta">
-            {(props) => <RouletteScreen {...props} currentUser={currentUser} />}
+          <Tab.Screen name="Juegos">
+            {(props) => <GamesScreen {...props} currentUser={currentUser} />}
           </Tab.Screen>
           <Tab.Screen name="Fotos">
             {(props) => <GalleryScreen {...props} currentUser={currentUser} />}

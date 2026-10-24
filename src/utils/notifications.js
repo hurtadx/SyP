@@ -6,6 +6,7 @@ const TITLES = {
   new_photo: () => 'Nueva foto ✦',
   new_place: () => 'Nuevo lugar ✦',
   daily_answer: () => 'Pregunta del día ♡',
+  quiz: () => '¿Qué tanto me conoces? ✦',
 };
 
 export const notificationTitle = (type, data = {}) =>
