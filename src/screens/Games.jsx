@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground,
-  KeyboardAvoidingView, Platform
+  KeyboardAvoidingView, Platform, BackHandler
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -67,6 +67,16 @@ export default function GamesScreen({ currentUser }) {
 
   const backToMenu = () => setView('menu');
 
+  // El botón atrás del celular vuelve al menú de juegos en vez de salir de la pestaña
+  useEffect(() => {
+    if (view === 'menu') return undefined;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setView('menu');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [view]);
+
   if (view === 'roulette') {
     return (
       <View style={styles.flex}>
@@ -113,14 +123,14 @@ export default function GamesScreen({ currentUser }) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            {view !== 'menu' && (
-              <TouchableOpacity style={styles.backButton} onPress={backToMenu} hitSlop={10}>
-                <Ionicons name="chevron-back" size={26} color={appColors.primary} />
-              </TouchableOpacity>
-            )}
             <Text style={styles.pageTitle} numberOfLines={1}>
               {view === 'menu' ? 'Juegos' : titles[view]}
             </Text>
+            {view !== 'menu' && (
+              <TouchableOpacity style={styles.backButton} onPress={backToMenu} hitSlop={12}>
+                <Ionicons name="chevron-back" size={26} color={appColors.primary} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {view === 'about' && <AboutMeForm currentUser={currentUser} onDone={backToMenu} />}
@@ -187,6 +197,11 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
     left: 0,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   floatingBack: {
     position: 'absolute',
