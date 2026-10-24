@@ -120,3 +120,62 @@ export const scoreLabel = (score, total) => {
   if (ratio >= 0.6) return '¡Nada mal! ✦';
   return 'Hay que conocerse un poquito más ✦';
 };
+
+// "¿Quién es más probable que…?": cada día salen MOST_LIKELY_PER_DAY seguidas de la lista
+export const MOST_LIKELY = [
+  'llegue tarde a una cita',
+  'se ría en un momento serio',
+  'se coma el último pedazo de pizza sin preguntar',
+  'llore viendo una película',
+  'se pierda usando el GPS',
+  'olvide una fecha importante',
+  'gaste todo su dinero en comida',
+  'diga "te amo" primero en el día',
+  'se duerma primero en una llamada',
+  'organice una fiesta sorpresa',
+  'cante en la ducha a todo volumen',
+  'se quede viendo series hasta la madrugada',
+  'pida perdón primero después de una pelea',
+  'se coma algo que se cayó al piso',
+  'le hable a los animales en la calle',
+  'compre algo que no necesita',
+  'se asuste viendo una película de terror',
+  'planee el próximo viaje',
+  'se ría de sus propios chistes',
+  'mande mensajes a las 3 de la mañana',
+  'cocine algo rico sin receta',
+  'queme la comida',
+  'se tome mil fotos en un viaje',
+  'deje la ropa tirada',
+  'quiera adoptar muchas mascotas',
+  'sienta celos por una tontería',
+  'se emocione con un regalo pequeño',
+  'olvide dónde dejó las llaves',
+  'baile en público sin pena',
+  'haga trampa en un juego de mesa',
+  'gane una discusión',
+  'pida la comida de siempre',
+  'pruebe la comida del otro sin preguntar',
+  'responda los mensajes más rápido',
+  'deje el celular sin batería',
+  'llore de felicidad en nuestra boda',
+  'se despierte de mal humor',
+  'se robe las cobijas en la noche',
+  'diga "cinco minutos más" en la mañana',
+  'se gaste la plata en un antojo',
+  'cuente un secreto sin querer',
+  'haga un chiste malo en el peor momento',
+  'recuerde qué llevábamos puesto en la primera cita',
+  'escriba una carta de amor',
+  'se pierda en un centro comercial',
+  'se quede en silencio cuando algo le molesta',
+  'vea el final de una serie sin el otro',
+  'lleve snacks a todos lados',
+  'tenga la última palabra',
+  'se emocione más en Navidad',
+];
+
+export const MOST_LIKELY_PER_DAY = 5;
+
+export const mostLikelyForDay = (day) =>
+  Array.from({ length: MOST_LIKELY_PER_DAY }, (_, i) => MOST_LIKELY[(day * MOST_LIKELY_PER_DAY + i) % MOST_LIKELY.length]);

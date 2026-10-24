@@ -51,7 +51,7 @@ export const QUESTIONS = [
   '¿Por qué me elegirías otra vez?',
 ];
 
-const dayNumber = (date) =>
+export const dayNumber = (date) =>
   Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
 
 export const dateKey = (date = new Date()) => {

@@ -7,6 +7,7 @@ const TITLES = {
   new_place: () => 'Nuevo lugar ✦',
   daily_answer: () => 'Pregunta del día ♡',
   quiz: () => '¿Qué tanto me conoces? ✦',
+  most_likely: () => '¿Quién es más probable? ✦',
 };
 
 export const notificationTitle = (type, data = {}) =>

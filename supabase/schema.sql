@@ -129,3 +129,17 @@ begin
     execute format('create policy "open_access" on %I for all to anon using (true) with check (true)', t);
   end loop;
 end $$;
+
+create table if not exists most_likely_votes (
+  id bigint generated always as identity primary key,
+  play_date date not null,
+  user_id text not null,
+  statements jsonb not null,
+  votes jsonb not null,
+  created_at timestamptz default now(),
+  unique (play_date, user_id)
+);
+
+alter table most_likely_votes enable row level security;
+drop policy if exists "open_access" on most_likely_votes;
+create policy "open_access" on most_likely_votes for all to anon using (true) with check (true);

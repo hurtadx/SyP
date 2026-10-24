@@ -14,6 +14,8 @@ import RouletteScreen from './Roulette';
 import AboutMeForm from '../components/games/AboutMeForm';
 import QuizGame from '../components/games/QuizGame';
 import QuizReview from '../components/games/QuizReview';
+import MostLikelyGame from '../components/games/MostLikelyGame';
+import { dateKey } from '../utils/questions';
 
 const SPARKLE = '✦';
 
@@ -22,6 +24,7 @@ const displayName = (user) => (user === 'salo' ? 'Salo' : 'Tao');
 const MAX_HISTORY = 10;
 
 const GAMES = [
+  { id: 'mostLikely', title: '¿Quién es más probable?', subtitle: 'Nuevas cada día', icon: 'people-circle' },
   { id: 'quiz', title: '¿Qué tanto me conoces?', subtitle: 'Adivina las respuestas del otro', icon: 'help-circle' },
   { id: 'about', title: 'Sobre mí', subtitle: 'Tus respuestas para el quiz', icon: 'person-circle' },
   { id: 'roulette', title: 'Ruleta', subtitle: '¿Qué hacemos hoy?', icon: 'refresh-circle' },
@@ -34,10 +37,11 @@ export default function GamesScreen({ currentUser }) {
   const [myAnswerCount, setMyAnswerCount] = useState(0);
   const [pendingReviews, setPendingReviews] = useState([]);
   const [history, setHistory] = useState([]);
+  const [mostLikelyToday, setMostLikelyToday] = useState([]);
 
   const loadMenu = async () => {
     try {
-      const [about, pending, done] = await Promise.all([
+      const [about, pending, done, votes] = await Promise.all([
         supabase.from('about_me').select('question_id').eq('user_id', currentUser),
         supabase.from('quiz_games').select('*')
           .eq('about_user', currentUser)
@@ -47,15 +51,18 @@ export default function GamesScreen({ currentUser }) {
           .eq('status', 'done')
           .order('created_at', { ascending: false })
           .limit(MAX_HISTORY),
+        supabase.from('most_likely_votes').select('user_id').eq('play_date', dateKey()),
       ]);
 
       if (about.error) throw about.error;
       if (pending.error) throw pending.error;
       if (done.error) throw done.error;
+      if (votes.error) throw votes.error;
 
       setMyAnswerCount(about.data.length);
       setPendingReviews(pending.data);
       setHistory(done.data);
+      setMostLikelyToday(votes.data.map(v => v.user_id));
     } catch (error) {
       console.error('Error cargando juegos:', error);
     }
@@ -83,7 +90,19 @@ export default function GamesScreen({ currentUser }) {
     );
   }
 
-  const titles = { about: 'Sobre mí', quiz: '¿Qué tanto me conoces?', review: 'Revisar quiz' };
+  const otherUser = currentUser === 'salo' ? 'tao' : 'salo';
+
+  const subtitleFor = (game) => {
+    if (game.id === 'about') return `${game.subtitle} · ${myAnswerCount}/${ABOUT_QUESTIONS.length}`;
+    if (game.id === 'mostLikely') {
+      if (mostLikelyToday.includes(currentUser)) return 'Ya votaste hoy ✓';
+      if (mostLikelyToday.includes(otherUser)) return `${displayName(otherUser)} ya votó, ¡te toca!`;
+      return `${game.subtitle} · ¡vota hoy!`;
+    }
+    return game.subtitle;
+  };
+
+  const titles = { mostLikely: '¿Quién es más probable?', about: 'Sobre mí', quiz: '¿Qué tanto me conoces?', review: 'Revisar quiz' };
 
   return (
     <ImageBackground
@@ -113,6 +132,7 @@ export default function GamesScreen({ currentUser }) {
           </View>
 
           {view === 'about' && <AboutMeForm currentUser={currentUser} onDone={backToMenu} />}
+          {view === 'mostLikely' && <MostLikelyGame currentUser={currentUser} />}
           {view === 'quiz' && <QuizGame currentUser={currentUser} onDone={backToMenu} />}
           {view === 'review' && reviewGame && (
             <QuizReview currentUser={currentUser} game={reviewGame} onDone={backToMenu} />
@@ -142,11 +162,7 @@ export default function GamesScreen({ currentUser }) {
                   <Ionicons name={game.icon} size={40} color={appColors.pink} />
                   <View style={styles.gameInfo}>
                     <Text style={styles.gameTitle}>{game.title}</Text>
-                    <Text style={styles.gameSubtitle}>
-                      {game.id === 'about'
-                        ? `${game.subtitle} · ${myAnswerCount}/${ABOUT_QUESTIONS.length}`
-                        : game.subtitle}
-                    </Text>
+                    <Text style={styles.gameSubtitle}>{subtitleFor(game)}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={22} color={appColors.textLight} />
                 </TouchableOpacity>
