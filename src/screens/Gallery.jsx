@@ -35,7 +35,8 @@ import KeyboardAwareOverlay from '../components/KeyboardAwareOverlay';
 import { fonts } from '../utils/fonts';
 
 const { width } = Dimensions.get('window');
-const imageWidth = width / 2 - 24; 
+// 16 de padding a cada lado del contenedor + 8 de margen a cada lado de cada foto
+const imageWidth = (width - 16 * 2 - 8 * 4) / 2;
 
 export default function GalleryScreen({ currentUser }) {
   const [images, setImages] = useState([]);
