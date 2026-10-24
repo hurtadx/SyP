@@ -4,6 +4,7 @@ import {
   ImageBackground, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
@@ -30,6 +31,8 @@ export default function QuestionsScreen({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [savedDates, setSavedDates] = useState([]);
+  const [showSaved, setShowSaved] = useState(false);
 
   const today = dateKey();
   const todayQuestion = questionForDate();
@@ -49,8 +52,37 @@ export default function QuestionsScreen({ currentUser }) {
     }
   };
 
+  const loadSaved = async () => {
+    try {
+      const { data, error } = await supabase.from('saved_questions')
+        .select('question_date')
+        .eq('user_id', currentUser);
+
+      if (error) throw error;
+      setSavedDates((data || []).map(s => s.question_date));
+    } catch (error) {
+      console.error('Error cargando preguntas guardadas:', error);
+    }
+  };
+
+  const toggleSaved = async (date) => {
+    const wasSaved = savedDates.includes(date);
+    setSavedDates(wasSaved ? savedDates.filter(d => d !== date) : [...savedDates, date]);
+    try {
+      const { error } = wasSaved
+        ? await supabase.from('saved_questions').delete().eq('user_id', currentUser).eq('question_date', date)
+        : await supabase.from('saved_questions').insert([{ user_id: currentUser, question_date: date }]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error guardando pregunta:', error);
+      loadSaved();
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
+      loadSaved();
       loadAnswers();
       const interval = setInterval(loadAnswers, 15000);
       return () => clearInterval(interval);
@@ -66,6 +98,12 @@ export default function QuestionsScreen({ currentUser }) {
   const pastDays = answers
     .filter(a => a.user_id === currentUser && a.question_date !== today)
     .map(a => ({ mine: a, theirs: answerFor(a.question_date, otherUser) }));
+
+  // Solo se pueden guardar las preguntas que respondieron los dos
+  const savedDays = answers
+    .filter(a => a.user_id === currentUser && savedDates.includes(a.question_date))
+    .map(a => ({ mine: a, theirs: answerFor(a.question_date, otherUser) }))
+    .filter(day => day.theirs);
 
   const submitAnswer = async () => {
     const text = draft.trim();
@@ -107,6 +145,32 @@ export default function QuestionsScreen({ currentUser }) {
     </View>
   );
 
+  const renderSaveButton = (date) => {
+    const saved = savedDates.includes(date);
+    return (
+      <TouchableOpacity style={styles.saveButton} onPress={() => toggleSaved(date)} hitSlop={10}>
+        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={18} color={appColors.pink} />
+        <Text style={styles.saveText}>{saved ? 'Guardada' : 'Guardar'}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDayCard = ({ mine, theirs }) => (
+    <View key={mine.id} style={styles.pastCard}>
+      <View style={styles.pastHeader}>
+        <Text style={styles.pastDate}>
+          {mine.question_date === today ? 'Hoy' : formatDateKey(mine.question_date)}
+        </Text>
+        {theirs && renderSaveButton(mine.question_date)}
+      </View>
+      <Text style={styles.pastQuestion}>{mine.question}</Text>
+      {renderAnswer(mine.answer, currentUser)}
+      {theirs
+        ? renderAnswer(theirs.answer, otherUser)
+        : <Text style={styles.waitingText}>{displayName(otherUser)} no respondió</Text>}
+    </View>
+  );
+
   return (
     <ImageBackground
       source={require('../assets/fondos/naranjasFondo.jpg')}
@@ -136,7 +200,10 @@ export default function QuestionsScreen({ currentUser }) {
             <View style={styles.answersCard}>
               {renderAnswer(myAnswer.answer, currentUser)}
               {partnerAnswer ? (
-                renderAnswer(partnerAnswer.answer, otherUser)
+                <>
+                  {renderAnswer(partnerAnswer.answer, otherUser)}
+                  <View style={styles.todaySave}>{renderSaveButton(today)}</View>
+                </>
               ) : (
                 <Text style={styles.waitingText}>
                   {displayName(otherUser)} aún no responde {HEART}
@@ -171,19 +238,32 @@ export default function QuestionsScreen({ currentUser }) {
             </View>
           )}
 
-          {pastDays.length > 0 && (
+          {(pastDays.length > 0 || savedDays.length > 0) && (
             <>
-              <Text style={styles.sectionTitle}>Preguntas anteriores</Text>
-              {pastDays.map(({ mine, theirs }) => (
-                <View key={mine.id} style={styles.pastCard}>
-                  <Text style={styles.pastDate}>{formatDateKey(mine.question_date)}</Text>
-                  <Text style={styles.pastQuestion}>{mine.question}</Text>
-                  {renderAnswer(mine.answer, currentUser)}
-                  {theirs
-                    ? renderAnswer(theirs.answer, otherUser)
-                    : <Text style={styles.waitingText}>{displayName(otherUser)} no respondió</Text>}
-                </View>
-              ))}
+              <View style={styles.filterRow}>
+                <TouchableOpacity
+                  style={[styles.filterChip, !showSaved && styles.filterChipActive]}
+                  onPress={() => setShowSaved(false)}
+                >
+                  <Text style={[styles.filterText, !showSaved && styles.filterTextActive]}>Anteriores</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChip, showSaved && styles.filterChipActive]}
+                  onPress={() => setShowSaved(true)}
+                >
+                  <Text style={[styles.filterText, showSaved && styles.filterTextActive]}>
+                    Guardadas {HEART} {savedDays.length}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {showSaved
+                ? savedDays.length > 0
+                  ? savedDays.map(renderDayCard)
+                  : <Text style={styles.waitingText}>Aún no has guardado preguntas {HEART}</Text>
+                : pastDays.length > 0
+                  ? pastDays.map(renderDayCard)
+                  : <Text style={styles.waitingText}>Aún no hay preguntas anteriores</Text>}
             </>
           )}
         </ScrollView>
@@ -348,12 +428,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 6,
   },
-  sectionTitle: {
-    fontFamily: fonts.bold,
-    fontSize: 20,
-    color: appColors.accent,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
+  filterRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    marginBottom: 14,
+  },
+  filterChip: {
+    flex: 1,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 20,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: appColors.secondary,
+  },
+  filterChipActive: {
+    backgroundColor: appColors.primary,
+    borderColor: appColors.primary,
+  },
+  filterText: {
+    fontFamily: fonts.semibold,
+    fontSize: 15,
+    color: appColors.primary,
+  },
+  filterTextActive: {
+    color: 'white',
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  saveText: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: appColors.pink,
+    marginLeft: 4,
+  },
+  todaySave: {
+    alignItems: 'flex-end',
+  },
+  pastHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   pastCard: {
     width: '100%',
@@ -368,7 +487,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 13,
     color: appColors.textLight,
-    marginBottom: 4,
   },
   pastQuestion: {
     fontFamily: fonts.semibold,

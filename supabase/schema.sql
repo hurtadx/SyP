@@ -85,3 +85,15 @@ create table if not exists daily_answers (
 alter table daily_answers enable row level security;
 drop policy if exists "open_access" on daily_answers;
 create policy "open_access" on daily_answers for all to anon using (true) with check (true);
+
+create table if not exists saved_questions (
+  id bigint generated always as identity primary key,
+  user_id text not null,
+  question_date date not null,
+  created_at timestamptz default now(),
+  unique (user_id, question_date)
+);
+
+alter table saved_questions enable row level security;
+drop policy if exists "open_access" on saved_questions;
+create policy "open_access" on saved_questions for all to anon using (true) with check (true);
