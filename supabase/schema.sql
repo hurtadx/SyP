@@ -71,3 +71,17 @@ create policy "gallery_anon_all" on storage.objects for all to anon
   with check (bucket_id = 'photo_gallery');
 
 alter table user_settings add column if not exists push_token text;
+
+create table if not exists daily_answers (
+  id bigint generated always as identity primary key,
+  question_date date not null,
+  question text not null,
+  user_id text not null,
+  answer text not null,
+  created_at timestamptz default now(),
+  unique (question_date, user_id)
+);
+
+alter table daily_answers enable row level security;
+drop policy if exists "open_access" on daily_answers;
+create policy "open_access" on daily_answers for all to anon using (true) with check (true);

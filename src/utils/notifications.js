@@ -5,6 +5,7 @@ const TITLES = {
   new_song: () => 'Nueva canción ♪',
   new_photo: () => 'Nueva foto ✦',
   new_place: () => 'Nuevo lugar ✦',
+  daily_answer: () => 'Pregunta del día ♡',
 };
 
 export const notificationTitle = (type, data = {}) =>

@@ -18,6 +18,7 @@ import MapScreen from './src/screens/Map';
 import MusicScreen from './src/screens/Music';
 import RouletteScreen from './src/screens/Roulette';
 import GalleryScreen from './src/screens/Gallery';
+import QuestionsScreen from './src/screens/Questions';
 import UserSelect from './src/screens/UserSelect';
 
 const Tab = createBottomTabNavigator();
@@ -69,6 +70,8 @@ export default function App() {
               
               if (route.name === 'Inicio') {
                 iconName = focused ? 'heart' : 'heart-outline';
+              } else if (route.name === 'Pregunta') {
+                iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
               } else if (route.name === 'Mapa') {
                 iconName = focused ? 'map' : 'map-outline';
               } else if (route.name === 'Música') {
@@ -98,6 +101,9 @@ export default function App() {
          
           <Tab.Screen name="Inicio">
             {(props) => <HomeScreen {...props} currentUser={currentUser} setCurrentUser={setCurrentUser} />}
+          </Tab.Screen>
+          <Tab.Screen name="Pregunta">
+            {(props) => <QuestionsScreen {...props} currentUser={currentUser} />}
           </Tab.Screen>
           <Tab.Screen name="Mapa">
             {(props) => <MapScreen {...props} currentUser={currentUser} />}
