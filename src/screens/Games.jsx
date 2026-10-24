@@ -8,13 +8,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { appColors } from '../utils/colors';
 import { supabase } from '../utils/supabase';
-import { ABOUT_QUESTIONS } from '../utils/games';
+import { aboutForDay } from '../utils/games';
 import { fonts } from '../utils/fonts';
 import RouletteScreen from './Roulette';
 import AboutMeForm from '../components/games/AboutMeForm';
 import QuizGame from '../components/games/QuizGame';
 import MostLikelyGame from '../components/games/MostLikelyGame';
-import { dateKey } from '../utils/questions';
+import { dateKey, dayNumber } from '../utils/questions';
 
 const SPARKLE = '✦';
 
@@ -25,14 +25,14 @@ const MAX_HISTORY = 10;
 const GAMES = [
   { id: 'mostLikely', title: '¿Quién es más probable?', subtitle: 'Nuevas cada día', icon: 'people-circle' },
   { id: 'quiz', title: '¿Qué tanto me conoces?', subtitle: 'Adivina las respuestas del otro', icon: 'help-circle' },
-  { id: 'about', title: 'Sobre mí', subtitle: 'Tus respuestas para el quiz', icon: 'person-circle' },
+  { id: 'about', title: 'Sobre mí', subtitle: 'Preguntas nuevas cada día', icon: 'person-circle' },
   { id: 'roulette', title: 'Ruleta', subtitle: '¿Qué hacemos hoy?', icon: 'refresh-circle' },
 ];
 
 export default function GamesScreen({ currentUser }) {
   const insets = useSafeAreaInsets();
   const [view, setView] = useState('menu');
-  const [myAnswerCount, setMyAnswerCount] = useState(0);
+  const [myAnswerIds, setMyAnswerIds] = useState([]);
   const [history, setHistory] = useState([]);
   const [mostLikelyToday, setMostLikelyToday] = useState([]);
 
@@ -51,7 +51,7 @@ export default function GamesScreen({ currentUser }) {
       if (done.error) throw done.error;
       if (votes.error) throw votes.error;
 
-      setMyAnswerCount(about.data.length);
+      setMyAnswerIds(about.data.map(a => a.question_id));
       setHistory(done.data);
       setMostLikelyToday(votes.data.map(v => v.user_id));
     } catch (error) {
@@ -81,7 +81,11 @@ export default function GamesScreen({ currentUser }) {
   const otherUser = currentUser === 'salo' ? 'tao' : 'salo';
 
   const subtitleFor = (game) => {
-    if (game.id === 'about') return `${game.subtitle} · ${myAnswerCount}/${ABOUT_QUESTIONS.length}`;
+    if (game.id === 'about') {
+      const todayIds = aboutForDay(dayNumber(new Date())).map(q => q.id);
+      const pending = todayIds.filter(id => !myAnswerIds.includes(id)).length;
+      return pending > 0 ? `${pending} nuevas hoy ✦ · ${myAnswerIds.length} respondidas` : `Al día ✓ · ${myAnswerIds.length} respondidas`;
+    }
     if (game.id === 'mostLikely') {
       if (mostLikelyToday.includes(currentUser)) return 'Ya votaste hoy ✓';
       if (mostLikelyToday.includes(otherUser)) return `${displayName(otherUser)} ya votó, ¡te toca!`;

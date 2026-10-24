@@ -4,8 +4,9 @@ import { appColors } from '../../utils/colors';
 import { supabase } from '../../utils/supabase';
 import { sendActivityNotification } from '../../utils/notifications';
 import {
-  ABOUT_QUESTIONS, QUIZ_LENGTH, QUIZ_MIN_ANSWERS, buildOptions, isSameAnswer, scoreLabel, shuffle
+  ABOUT_QUESTIONS, QUIZ_LENGTH, QUIZ_MIN_ANSWERS, aboutForDay, buildOptions, isSameAnswer, scoreLabel, shuffle
 } from '../../utils/games';
+import { dayNumber } from '../../utils/questions';
 import { gameStyles } from './gameStyles';
 
 const displayName = (user) => (user === 'salo' ? 'Salo' : 'Tao');
@@ -42,7 +43,11 @@ export default function QuizGame({ currentUser, onDone }) {
   }, [otherUser]);
 
   const start = () => {
-    const picks = shuffle(partnerAnswers).slice(0, QUIZ_LENGTH).map(a => {
+    // Primero las preguntas de hoy para que cada día el quiz traiga algo nuevo
+    const todayIds = aboutForDay(dayNumber(new Date())).map(q => q.id);
+    const fresh = shuffle(partnerAnswers.filter(a => todayIds.includes(a.question_id)));
+    const rest = shuffle(partnerAnswers.filter(a => !todayIds.includes(a.question_id)));
+    const picks = shuffle([...fresh, ...rest].slice(0, QUIZ_LENGTH)).map(a => {
       const question = ABOUT_QUESTIONS.find(q => q.id === a.question_id);
       return {
         question_id: a.question_id,
