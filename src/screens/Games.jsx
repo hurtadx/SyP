@@ -13,7 +13,6 @@ import { fonts } from '../utils/fonts';
 import RouletteScreen from './Roulette';
 import AboutMeForm from '../components/games/AboutMeForm';
 import QuizGame from '../components/games/QuizGame';
-import QuizReview from '../components/games/QuizReview';
 import MostLikelyGame from '../components/games/MostLikelyGame';
 import { dateKey } from '../utils/questions';
 
@@ -33,21 +32,15 @@ const GAMES = [
 export default function GamesScreen({ currentUser }) {
   const insets = useSafeAreaInsets();
   const [view, setView] = useState('menu');
-  const [reviewGame, setReviewGame] = useState(null);
   const [myAnswerCount, setMyAnswerCount] = useState(0);
-  const [pendingReviews, setPendingReviews] = useState([]);
   const [history, setHistory] = useState([]);
   const [mostLikelyToday, setMostLikelyToday] = useState([]);
 
   const loadMenu = async () => {
     try {
-      const [about, pending, done, votes] = await Promise.all([
+      const [about, done, votes] = await Promise.all([
         supabase.from('about_me').select('question_id').eq('user_id', currentUser),
-        supabase.from('quiz_games').select('*')
-          .eq('about_user', currentUser)
-          .eq('status', 'pending_review')
-          .order('created_at', { ascending: true }),
-        supabase.from('quiz_games').select('id, player, about_user, mode, score, total, created_at')
+        supabase.from('quiz_games').select('id, player, about_user, score, total, created_at')
           .eq('status', 'done')
           .order('created_at', { ascending: false })
           .limit(MAX_HISTORY),
@@ -55,12 +48,10 @@ export default function GamesScreen({ currentUser }) {
       ]);
 
       if (about.error) throw about.error;
-      if (pending.error) throw pending.error;
       if (done.error) throw done.error;
       if (votes.error) throw votes.error;
 
       setMyAnswerCount(about.data.length);
-      setPendingReviews(pending.data);
       setHistory(done.data);
       setMostLikelyToday(votes.data.map(v => v.user_id));
     } catch (error) {
@@ -74,10 +65,7 @@ export default function GamesScreen({ currentUser }) {
     }, [view])
   );
 
-  const backToMenu = () => {
-    setReviewGame(null);
-    setView('menu');
-  };
+  const backToMenu = () => setView('menu');
 
   if (view === 'roulette') {
     return (
@@ -102,7 +90,7 @@ export default function GamesScreen({ currentUser }) {
     return game.subtitle;
   };
 
-  const titles = { mostLikely: '¿Quién es más probable?', about: 'Sobre mí', quiz: '¿Qué tanto me conoces?', review: 'Revisar quiz' };
+  const titles = { mostLikely: '¿Quién es más probable?', about: 'Sobre mí', quiz: '¿Qué tanto me conoces?' };
 
   return (
     <ImageBackground
@@ -134,29 +122,9 @@ export default function GamesScreen({ currentUser }) {
           {view === 'about' && <AboutMeForm currentUser={currentUser} onDone={backToMenu} />}
           {view === 'mostLikely' && <MostLikelyGame currentUser={currentUser} />}
           {view === 'quiz' && <QuizGame currentUser={currentUser} onDone={backToMenu} />}
-          {view === 'review' && reviewGame && (
-            <QuizReview currentUser={currentUser} game={reviewGame} onDone={backToMenu} />
-          )}
 
           {view === 'menu' && (
             <>
-              {pendingReviews.map(game => (
-                <TouchableOpacity
-                  key={game.id}
-                  style={styles.pendingBanner}
-                  onPress={() => {
-                    setReviewGame(game);
-                    setView('review');
-                  }}
-                >
-                  <Ionicons name="notifications" size={22} color="white" />
-                  <Text style={styles.pendingText}>
-                    {displayName(game.player)} jugó tu quiz escribiendo, ¡revísalo!
-                  </Text>
-                  <Ionicons name="chevron-forward" size={22} color="white" />
-                </TouchableOpacity>
-              ))}
-
               {GAMES.map(game => (
                 <TouchableOpacity key={game.id} style={styles.gameCard} onPress={() => setView(game.id)}>
                   <Ionicons name={game.icon} size={40} color={appColors.pink} />
@@ -175,9 +143,6 @@ export default function GamesScreen({ currentUser }) {
                     <View key={game.id} style={styles.historyRow}>
                       <Text style={styles.historyText}>
                         {displayName(game.player)} sobre {displayName(game.about_user)}
-                        <Text style={styles.historyMode}>
-                          {'  '}{game.mode === 'choice' ? 'opciones' : 'escribiendo'}
-                        </Text>
                       </Text>
                       <Text style={styles.historyScore}>{game.score}/{game.total} {SPARKLE}</Text>
                     </View>
@@ -244,21 +209,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  pendingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: appColors.pink,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 14,
-  },
-  pendingText: {
-    flex: 1,
-    fontFamily: fonts.semibold,
-    fontSize: 15,
-    color: 'white',
-    marginHorizontal: 10,
-  },
   gameCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,11 +264,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 15,
     color: appColors.text,
-  },
-  historyMode: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: appColors.textLight,
   },
   historyScore: {
     fontFamily: fonts.bold,
